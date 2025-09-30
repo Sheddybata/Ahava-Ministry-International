@@ -1,0 +1,61 @@
+{
+  "name": "FaithFlow - Daily Bible Reading & Spiritual Growth",
+  "short_name": "FaithFlow",
+  "description": "Your daily companion for Bible reading, spiritual journaling, and Christian community. Grow in faith with structured reading plans and reflection tools.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["lifestyle", "education", "religion"],
+  "icons": [
+    {
+      "src": "/Ahava Logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Ahava Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/Ahava Logo.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Today's Reading",
+      "short_name": "Reading",
+      "description": "Start today's Bible reading",
+      "url": "/?tab=home",
+      "icons": [
+        {
+          "src": "/Ahava Logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Journal",
+      "short_name": "Journal",
+      "description": "Write in your spiritual journal",
+      "url": "/?tab=journal",
+      "icons": [
+        {
+          "src": "/Ahava Logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

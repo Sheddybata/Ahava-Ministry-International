@@ -1,0 +1,91 @@
+Day,Book,Chapter
+1,Genesis,1 to 15
+2,Genesis,16 to 26
+3,Genesis,27 to 36
+4,Genesis,37 to 47
+5,Genesis; Exodus,48 to 60; 1 to 9
+6,Exodus,10 to 21
+7,Exodus,22 to 31
+8,Exodus; Leviticus,32 to 40; 1 to 3
+9,Leviticus,4 to 13
+10,Leviticus,14 to 23
+11,Leviticus; Numbers,24 to 27; 1 to 4
+12,Numbers,5 to 13
+13,Numbers,14 to 23
+14,Numbers,24 to 33
+15,Numbers; Deuteronomy ,34 to 36; 1 to 7
+16,Deuteronomy,8 to 19
+17,Deuteronomy,20 to 31
+18,Deuteronomy; Joshua ,32 to 34; 1 to 9
+19,Joshua,10 to 19
+20,"Joshua, Judges",20 to 24; 1 to 6
+21,Judges,7 to 16
+22,Judges; Ruth; 1 Samuel,17 to 21; 1 to 4; 1 to 2
+23,1 Samuel,3 to 14
+24,1 Samuel,15 to 24
+25,1 Samuel; 2 Samuel,25 to 31; 1 to 5
+26,2 Samuel,6 to 16
+27,2 Samuel; 1 Kings,17 to 24; 1
+28,1 Kings,2 to 9
+29,1 Kings,10 to 18
+30,1 Kings; 2 Kings,19 to 22; 1 to 5
+31,2 Kings,6 to 15
+32,2 Kings,16 to 25
+33,1 Chronicles ,1 to 10
+34,1 Chronicles ,11 to 23
+35,1 Chronicles; 2 Chronicles ,24 to 29; 1 to 6
+36,2 Chronicles ,7 to 20
+37,2 Chronicles ,21 to 32
+38,2 Chronicles; Ezra,33 to 36; 1 to 6
+39,Ezra; Nehemiah ,7 to 10; 1 to 8
+40,Nehemiah; Esther,9 to13; 1 to 7
+41,Esther; Job,8 to 10; 1 to 15
+42,Job,16 to 35
+43,Job; Psalms,36 to 42; 1 to 20
+44,Psalms,21 to 46
+45,Psalms,47 to 73
+46,Psalms,74 to 100
+47,Psalms,101 to 119
+48,Psalms; Proverbs,120 to 150; 1 to 3
+49,Proverbs,4 to 21
+50,Proverbs; Ecclesiastes,22 to 31; 1 to 5
+51,Ecclesiastes; Song of songs; Isaiah,6 to 12; 1 to 8; 1 to 5
+52,Isaiah,6 to 23
+53,Isaiah,24 to 37
+54,Isaiah,38 to 52
+55,Isaiah; Jeremiah ,53 to 66; 1 to 3
+56,Jeremiah ,4 to 24
+57,Jeremiah ,15 to 27
+58,Jeremiah ,28 to 37
+59,Jeremiah ,38 to 49
+60,Jeremiah; Lamentations,50 to 52; 1 to 5
+61,Ezekiel,1 to 15
+62,Ezekiel,16 to 25
+63,Ezekiel,26 to 36
+64,Ezekiel,37 to 46
+65,Ezekiel; Daniel,47 to 48; 1 to 7
+66,Daniel; Hosea,8 to 12; 1 to 11
+67,Hosea; Joel; Amos; Obadiah,"12 to 14, 1 to 3; 1 to 9; 1"
+68,Jonah; Micah; Nahum; Habakkuk; Zapheniah,1 to 4;1 to 7; 1 to 3; 1 to 3; 1 to 3
+69,Haggai; Zechariah; Malachi,1 to 2; 1 to 14; 1 to 4
+70,Matthew,1 to 12 
+71,Matthew,13 to 22
+72,Matthew; Mark,23 to 28; 1 to 3
+73,Mark,4 to 12
+74,Mark; Luke,13 to 16; 1 to 5
+75,Luke,6 to 12
+76,Luke,13 to 21
+77,Luke; John,22 to 24; 1 to 6
+78,John,7 to 15
+79,John; Acts,16 to 21; 1 to 5
+80,Acts,6 to 14 
+81,Acts,15 to 24
+82,Acts; Romans,25 to 28; 1 to 9
+83,Romans; 1 Corinthians ,10 to 16; 1 to 9
+84,1 Corinthians; 2 Corinthians,10 to 16; 1 to 8
+85,2 Corinthians; Galatians; Ephesians,9 to 13; 1 to 6; 1 to 6
+86,Philippians; Colossians; 1 Thessalonians ; 2 Thessalonians ,1 to 4; 1 to 4; 1 to 4; 1 to 5; 1 to 3
+87,1 Timothy; 2 Timothy; Titus; Philemon; Hebrews,1 to 6; 1 to 4; 1 to 3; 1; 1 to 8
+88,Hebrews; James; 1 Peter,9 to 13; 1 to 5; 1 to 5
+89,2 Peter; 1 John; 2 John; 3 John; Jude; Revelation,1 to 3; 1 to 5; 1; 1; 1; 1 to 5
+90,Revelations,6 to 22

@@ -1,0 +1,41 @@
+Day,Book ,Chapter
+1,Matthew,1 to 6
+2,Matthew,7 to 11
+3,Matthew,12 to 15
+4,Matthew,16 to 20
+5,Matthew,21 to 24
+6,Matthew,25 to 28
+7,Mark,1 to 6
+8,Mark,7 to 11
+9,Mark,12 to 16
+10,Luke,1 to 4
+11,Luke,5 to 8
+12,Luke,9 to 11
+13,Luke,12 to 16
+14,Luke,17 to 20
+15,Luke,21 to 24
+16,John,1 to 5
+17,John,6 to 9
+18,John,10 to 15
+19,John,16 to 21
+20,Acts,1 to 6
+21,Acts,7 to 10
+22,Acts,11 to 16
+23,Acts,17 to 22
+24,Acts,23 to 28
+25,Romans,1 to 8
+26,Romans,9 to 16
+27,1 Corinthians,1 to 9
+28,1 Corinthians,10 to 16
+29,2 Corinthians,1 to 10
+30,2 Corinthians; Galatians,11 to 13; 1 to 6
+31,Ephesians; Philippians,1 to 6; 1 to 4
+32,Colossians; 1 Thessalonians; 2 Thessalonians,1 to 4; 1 to 5; 1 to 3
+33,1 Timothy; 2 Timothy,1 to 6; 1 to 4
+34,Titus; Philemon; Hebrews,"1 to 3; 1, 1 to 7"
+35,Hebrews,8 to 13
+36,James; 1 Peter,1 to 5; 1 to 5
+37,2 Peter; 1 John,1 to 3; 1 to 5
+38,2 John; 3 John; Jude; Revelation,1; 1; 1; 1 to 6
+39,Revelation,7 to 15
+40,Revelation,16 to 22
