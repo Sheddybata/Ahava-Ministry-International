@@ -13,9 +13,9 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
 
   return (
     <div className="bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center justify-between safe-area-top safe-area-left safe-area-right">
-      <div>
-        <h1 className="text-2xl font-bold text-red-800">FaithFlow</h1>
-        <p className="text-base text-gray-600">Welcome back, {username}</p>
+      <div className="flex-1 min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-red-800 truncate">FaithFlow</h1>
+        <p className="text-sm sm:text-base text-gray-600 truncate">Welcome back, {username}</p>
       </div>
       
       <div className="relative">

@@ -85,13 +85,13 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">My Reflection</h1>
-                <p className="text-gray-600">Capture your spiritual insights and growth</p>
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
+              <div className="text-center sm:text-left">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">My Reflection</h1>
+                <p className="text-sm sm:text-base text-gray-600">Capture your spiritual insights and growth</p>
               </div>
-              <div className="text-right">
-                <div className="bg-gradient-to-r from-red-800 to-yellow-600 text-white px-4 py-2 rounded-xl font-bold text-lg">
+              <div className="text-center">
+                <div className="bg-gradient-to-r from-red-800 to-yellow-600 text-white px-3 py-2 rounded-xl font-bold text-base">
                   Day {currentDay}
                 </div>
               </div>

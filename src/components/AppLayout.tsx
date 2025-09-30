@@ -96,7 +96,7 @@ const AppLayout: React.FC = () => {
     const communityEntry = {
       id: entry.id,
       username: userData.username,
-      avatar: 'https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp',
+      avatar: userData.profilePicture,
       day: entry.day,
       date: entry.date,
       content: entry.insight + ' ' + entry.prayer, // Keep for backward compatibility
@@ -125,7 +125,7 @@ const AppLayout: React.FC = () => {
                 {
                   id: Date.now().toString(),
                   username: userData.username,
-                  avatar: 'https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp',
+                  avatar: userData.profilePicture,
                   content: comment,
                   date: new Date().toISOString()
                 }
@@ -150,7 +150,7 @@ const AppLayout: React.FC = () => {
     const newEntry = {
       id: Date.now().toString(),
       username: prayerRequest.isAnonymous ? 'Anonymous' : userData.username,
-      avatar: prayerRequest.isAnonymous ? 'https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp' : 'https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp',
+      avatar: prayerRequest.isAnonymous ? null : userData.profilePicture,
       day: 0,
       date: new Date().toISOString(),
       content: `${prayerRequest.title}\n\n${prayerRequest.content}`,
@@ -165,7 +165,7 @@ const AppLayout: React.FC = () => {
     const newEntry = {
       id: Date.now().toString(),
       username: testimony.isAnonymous ? 'Anonymous' : userData.username,
-      avatar: testimony.isAnonymous ? 'https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp' : 'https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp',
+      avatar: testimony.isAnonymous ? null : userData.profilePicture,
       day: 0,
       date: new Date().toISOString(),
       content: `${testimony.title}\n\n${testimony.content}`,

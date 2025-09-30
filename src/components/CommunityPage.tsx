@@ -158,11 +158,17 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
             <div key={entry.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
               {/* Entry Header */}
               <div className="flex items-center space-x-3 mb-3">
-                <img 
-                  src={entry.avatar} 
-                  alt={entry.username}
-                  className="w-10 h-10 rounded-full"
-                />
+                {entry.avatar ? (
+                  <img 
+                    src={entry.avatar} 
+                    alt={entry.username}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-lg text-gray-400">👤</span>
+                  </div>
+                )}
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-800">{entry.username}</h4>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -279,11 +285,17 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                   {/* Existing Comments */}
                   {entry.comments.map((comment) => (
                     <div key={comment.id} className="flex space-x-3 mb-3">
-                      <img 
-                        src={comment.avatar} 
-                        alt={comment.username}
-                        className="w-8 h-8 rounded-full"
-                      />
+                      {comment.avatar ? (
+                        <img 
+                          src={comment.avatar} 
+                          alt={comment.username}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm text-gray-400">👤</span>
+                        </div>
+                      )}
                       <div className="flex-1 bg-gray-50 rounded-lg p-3">
                         <h5 className="font-medium text-sm text-gray-800">{comment.username}</h5>
                         <p className="text-sm text-gray-700">{comment.content}</p>
