@@ -3,14 +3,16 @@ import React from 'react';
 interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  showAnnouncements?: boolean;
 }
 
-const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabChange }) => {
+const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabChange, showAnnouncements }) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: '🏠', activeIcon: '🏠' },
     { id: 'journal', label: 'Journal', icon: '📖', activeIcon: '📖' },
     { id: 'leaderboard', label: 'Leaderboard', icon: '🏆', activeIcon: '🏆' },
-    { id: 'community', label: 'Community', icon: '👥', activeIcon: '👥' }
+    { id: 'community', label: 'Community', icon: '👥', activeIcon: '👥' },
+    ...(showAnnouncements ? [{ id: 'announce', label: 'Announce', icon: '📣', activeIcon: '📣' }] : [])
   ];
 
   return (

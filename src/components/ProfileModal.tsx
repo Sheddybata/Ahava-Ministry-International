@@ -10,6 +10,14 @@ interface ProfileModalProps {
   onUpdateProfilePicture: (picture: string | null) => void;
   isDarkMode: boolean;
   onThemeToggle: () => void;
+  isFacilitator?: boolean;
+  onToggleFacilitator?: (value: boolean) => void;
+  // User statistics
+  journalEntries?: number;
+  communityPosts?: number;
+  totalLikes?: number;
+  currentStreak?: number;
+  totalVisits?: number;
 }
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ 
@@ -21,11 +29,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
   onUpdateReadingPlan,
   onUpdateProfilePicture,
   isDarkMode,
-  onThemeToggle 
+  onThemeToggle,
+  isFacilitator,
+  onToggleFacilitator,
+  journalEntries = 0,
+  communityPosts = 0,
+  totalLikes = 0,
+  currentStreak = 0,
+  totalVisits = 0
 }) => {
   const [selectedPlan, setSelectedPlan] = useState(readingPlan);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const readingPlans = [
     { id: '40-days', name: '40 Days', description: 'Essential spiritual journey' },
@@ -55,10 +71,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
     onUpdateProfilePicture(null);
   };
 
+  const handleHelpSupport = () => {
+    setShowHelp(true);
+  };
+
+  const handleStatistics = () => {
+    // Show detailed statistics modal or navigate to stats page
+    alert(`Your FaithFlow Statistics:\n\n📖 Journal Entries: ${journalEntries}\n👥 Community Posts: ${communityPosts}\n❤️ Total Likes Received: ${totalLikes}\n🔥 Current Streak: ${currentStreak} days\n📱 Total App Visits: ${totalVisits}`);
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100]">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1000]">
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto scrollbar-hide">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -125,6 +150,29 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               <h3 className="text-lg font-semibold text-gray-800">{username}</h3>
               <p className="text-sm text-gray-600">FaithFlow Member</p>
               <p className="text-xs text-gray-500 mt-1">Tap profile picture to change</p>
+            </div>
+          </div>
+        </div>
+
+        {/* User Statistics */}
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Your Statistics</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-red-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-red-600">{journalEntries}</div>
+              <div className="text-sm text-gray-600">Journal Entries</div>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{communityPosts}</div>
+              <div className="text-sm text-gray-600">Community Posts</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{totalLikes}</div>
+              <div className="text-sm text-gray-600">Likes Received</div>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-600">{currentStreak}</div>
+              <div className="text-sm text-gray-600">Day Streak</div>
             </div>
           </div>
         </div>
@@ -222,7 +270,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                   </div>
                 </button>
 
-                <button className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <button 
+                  onClick={handleStatistics}
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                >
                   <span className="text-2xl">📊</span>
                   <div className="text-left">
                     <h4 className="font-medium text-gray-800">Statistics</h4>
@@ -230,7 +281,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
                   </div>
                 </button>
 
-                <button className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <button 
+                  onClick={handleHelpSupport}
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                >
                   <span className="text-2xl">❓</span>
                   <div className="text-left">
                     <h4 className="font-medium text-gray-800">Help & Support</h4>
@@ -240,6 +294,72 @@ const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
         </div>
       </div>
+
+      {/* Help & Support Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[1001]">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-800">Help & Support</h2>
+              <button
+                onClick={() => setShowHelp(false)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3">Getting Started</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p>• Complete your daily Bible reading</p>
+                  <p>• Write journal reflections</p>
+                  <p>• Share with the community</p>
+                  <p>• Track your spiritual journey</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3">Features</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p>• <strong>Journal:</strong> Reflect on your readings</p>
+                  <p>• <strong>Community:</strong> Share insights and prayers</p>
+                  <p>• <strong>Export:</strong> Save entries as PDF or images</p>
+                  <p>• <strong>Statistics:</strong> Track your progress</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3">Contact Support</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p>📧 Email: support@faithflow.app</p>
+                  <p>📱 Phone: +234 806 328 0046</p>
+                  <p>💬 Live Chat: Available 9AM-6PM EST</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3">Troubleshooting</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p>• <strong>App not loading:</strong> Check your internet connection</p>
+                  <p>• <strong>Can't save entries:</strong> Try refreshing the page</p>
+                  <p>• <strong>Export issues:</strong> Ensure you have sufficient storage</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="w-full bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

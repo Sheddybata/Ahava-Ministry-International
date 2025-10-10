@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { initializeNotifications } from './services/notifications'
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -9,6 +10,8 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
         console.log('SW registered: ', registration);
+        // Initialize web push notifications after SW is ready
+        initializeNotifications().catch(console.error)
       })
       .catch((registrationError) => {
         console.log('SW registration failed: ', registrationError);

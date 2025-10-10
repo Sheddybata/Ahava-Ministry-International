@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import JournalSuccessModal from './JournalSuccessModal';
 
 interface CommunityEntry {
   id: string;
@@ -9,6 +10,7 @@ interface CommunityEntry {
   content: string;
   type: 'insight' | 'prayer' | 'testimony';
   likes: number;
+  likedBy: string[]; // Array of user IDs who liked this post
   comments: Comment[];
   // Journal entry fields
   insight?: string;
@@ -33,6 +35,7 @@ interface CommunityPageProps {
   onLikeEntry: (entryId: string) => void;
   onAddPrayerRequest: (prayerRequest: { title: string; content: string; isAnonymous: boolean }) => void;
   onAddTestimony: (testimony: { title: string; content: string; isAnonymous: boolean }) => void;
+  currentUserId?: string; // Current user ID to check if they've liked a post
 }
 
 const CommunityPage: React.FC<CommunityPageProps> = ({ 
@@ -40,7 +43,8 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   onAddComment, 
   onLikeEntry, 
   onAddPrayerRequest, 
-  onAddTestimony 
+  onAddTestimony,
+  currentUserId = 'current-user' // Default user ID for demo
 }) => {
   const [activeTab, setActiveTab] = useState<'insight' | 'prayer' | 'testimony'>('insight');
   const [commentText, setCommentText] = useState<{ [key: string]: string }>({});
@@ -50,6 +54,8 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   const [prayerForm, setPrayerForm] = useState({ title: '', content: '', isAnonymous: false });
   const [testimonyForm, setTestimonyForm] = useState({ title: '', content: '', isAnonymous: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [exportEntry, setExportEntry] = useState<any | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const filteredEntries = entries.filter(entry => entry.type === activeTab);
 
@@ -259,9 +265,13 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() => onLikeEntry(entry.id)}
-                    className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors"
+                    className={`flex items-center space-x-1 transition-colors ${
+                      entry.likedBy?.includes(currentUserId) 
+                        ? 'text-red-600' 
+                        : 'text-gray-600 hover:text-red-600'
+                    }`}
                   >
-                    <span>❤️</span>
+                    <span>{entry.likedBy?.includes(currentUserId) ? '❤️' : '🤍'}</span>
                     <span className="text-sm">{entry.likes}</span>
                   </button>
                   
@@ -274,7 +284,28 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                   </button>
                 </div>
                 
-                <button className="text-gray-400 hover:text-gray-600">
+                <button
+                  onClick={() => {
+                    const constructed = {
+                      title: `${entry.type.toUpperCase()} - Day ${entry.day}`,
+                      content: entry.type === 'insight'
+                        ? [
+                            entry.insight ? `INSIGHT: ${entry.insight}` : undefined,
+                            entry.attention ? `ATTENTION: ${entry.attention}` : undefined,
+                            entry.commitment ? `COMMITMENT: ${entry.commitment}` : undefined,
+                            entry.task ? `TASK: ${entry.task}` : undefined,
+                            entry.system ? `SYSTEM: ${entry.system}` : undefined,
+                            entry.prayer ? `PRAYER: ${entry.prayer}` : undefined,
+                          ].filter(Boolean).join('\n\n')
+                        : entry.content,
+                      date: new Date(entry.date).toLocaleDateString(),
+                      day: entry.day,
+                    };
+                    setExportEntry(constructed);
+                    setShowExportModal(true);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
                   <span>📤</span>
                 </button>
               </div>
@@ -483,6 +514,14 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Export / Share Modal (reuse Journal success modal) */}
+      {exportEntry && (
+        <JournalSuccessModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          entry={exportEntry}
+        />
       )}
     </div>
   );

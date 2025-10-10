@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import SplashScreen from './SplashScreen';
 import AuthScreen from './AuthScreen';
+import FacilitatorLogin from './FacilitatorLogin';
 import OnboardingScreen from './OnboardingScreen';
 import TopHeader from './TopHeader';
 import BottomNavigation from './BottomNavigation';
 import HomePage from './HomePage';
+import AnnouncementForm from './AnnouncementForm';
 import JournalPage from './JournalPage';
 import LeaderboardPage from './LeaderboardPage';
 import CommunityPage from './CommunityPage';
 import ProfileModal from './ProfileModal';
+import { supabase } from '@/lib/supabaseClient';
+import { 
+  userService, 
+  journalService, 
+  communityService, 
+  announcementService,
+  realtimeService,
+  authService 
+} from '@/services/database';
 
 const AppLayout: React.FC = () => {
-  const [appState, setAppState] = useState<'splash' | 'auth' | 'onboarding' | 'main'>('splash');
+  const [appState, setAppState] = useState<'splash' | 'auth' | 'facilitator-login' | 'onboarding' | 'main'>('splash');
   const [activeTab, setActiveTab] = useState('home');
   const [userData, setUserData] = useState({
     username: '',
@@ -24,6 +35,9 @@ const AppLayout: React.FC = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [communityEntries, setCommunityEntries] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isFacilitator, setIsFacilitator] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
 
   // Mock leaderboard data
   const leaderboardUsers = [
@@ -77,103 +91,314 @@ const AppLayout: React.FC = () => {
   }, [appState]);
 
   const handleSplashComplete = () => {
-    setAppState('auth');
+    // After splash, decide where to go based on persisted session
+    const hasSession = (() => {
+      try { return localStorage.getItem('ff_user_session') === '1'; } catch { return false; }
+    })();
+    setAppState(hasSession ? 'main' : 'auth');
   };
 
-  const handleAuthComplete = () => {
-    setAppState('onboarding');
+  const handleAuthComplete = async (isNewUser?: boolean) => {
+    try {
+      // Ensure regular user sessions never have facilitator privileges
+      setIsFacilitator(false);
+      try { localStorage.setItem('ff_is_facilitator', '0'); } catch {}
+      
+      // Create user profile in database
+      if (currentUser) {
+        await userService.upsertUserProfile({
+          id: currentUser.id,
+          email: currentUser.email,
+          username: userData.username,
+          profile_picture: userData.profilePicture,
+          reading_plan: userData.readingPlan,
+          is_facilitator: false
+        });
+      }
+      
+      // Persist user session
+      try { localStorage.setItem('ff_user_session', '1'); } catch {}
+      
+      if (isNewUser) {
+        // New users go through onboarding
+        setAppState('onboarding');
+      } else {
+        // Existing users go directly to main app
+        setAppState('main');
+      }
+    } catch (error) {
+      console.error('Error completing auth:', error);
+    }
   };
 
-  const handleOnboardingComplete = (data: { username: string; readingPlan: string; profilePicture?: string | null }) => {
-    setUserData(prev => ({ ...prev, ...data }));
-    setAppState('main');
+  // Initialize app with real-time data
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      // Check for existing session
+      const session = await authService.getSession();
+      
+      if (session?.user) {
+        await loadUserData(session.user);
+        setAppState('main');
+      } else {
+        // Check for local session
+        const hasLocalSession = localStorage.getItem('ff_user_session') === '1';
+        if (hasLocalSession) {
+          setAppState('main');
+        } else {
+          setAppState('auth');
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      setAppState('auth');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveJournalEntry = (entry: any) => {
-    setJournalEntries(prev => [...prev, entry]);
-    
-    // Add to community entries with all journal fields
-    const communityEntry = {
-      id: entry.id,
-      username: userData.username,
-      avatar: userData.profilePicture,
-      day: entry.day,
-      date: entry.date,
-      content: entry.insight + ' ' + entry.prayer, // Keep for backward compatibility
-      type: 'insight' as const,
-      likes: 0,
-      comments: [],
-      // Include all journal fields
-      insight: entry.insight,
-      attention: entry.attention,
-      commitment: entry.commitment,
-      task: entry.task,
-      system: entry.system,
-      prayer: entry.prayer
-    };
-    setCommunityEntries(prev => [...prev, communityEntry]);
+  const loadUserData = async (user: any) => {
+    try {
+      // Get user profile
+      const profile = await userService.getUserProfile(user.id);
+      
+      setCurrentUser(user);
+      setUserData({
+        username: profile.username,
+        readingPlan: profile.reading_plan,
+        profilePicture: profile.profile_picture,
+        streaks: profile.current_streak,
+        totalVisits: profile.total_visits
+      });
+      
+      setIsFacilitator(profile.is_facilitator);
+      
+      // Load journal entries
+      const journalData = await journalService.getUserJournalEntries(user.id);
+      setJournalEntries(journalData);
+      
+      // Load community posts
+      const communityData = await communityService.getCommunityPosts();
+      setCommunityEntries(communityData);
+      
+      // Set up real-time subscriptions
+      setupRealtimeSubscriptions();
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
   };
 
-  const handleAddComment = (entryId: string, comment: string) => {
-    setCommunityEntries(prev => 
-      prev.map(entry => 
-        entry.id === entryId 
-          ? {
+  const setupRealtimeSubscriptions = () => {
+    // Subscribe to community posts changes
+    realtimeService.subscribeToCommunityPosts((payload) => {
+      if (payload.eventType === 'INSERT') {
+        setCommunityEntries(prev => [payload.new, ...prev]);
+      } else if (payload.eventType === 'UPDATE') {
+        setCommunityEntries(prev => 
+          prev.map(entry => entry.id === payload.new.id ? payload.new : entry)
+        );
+      } else if (payload.eventType === 'DELETE') {
+        setCommunityEntries(prev => 
+          prev.filter(entry => entry.id !== payload.old.id)
+        );
+      }
+    });
+
+    // Subscribe to post likes changes
+    realtimeService.subscribeToPostLikes((payload) => {
+      setCommunityEntries(prev => 
+        prev.map(entry => {
+          if (entry.id === payload.new?.post_id || entry.id === payload.old?.post_id) {
+            return {
               ...entry,
-              comments: [
-                ...entry.comments,
-                {
-                  id: Date.now().toString(),
-                  username: userData.username,
-                  avatar: userData.profilePicture,
-                  content: comment,
-                  date: new Date().toISOString()
-                }
-              ]
-            }
-          : entry
-      )
-    );
+              likes_count: payload.eventType === 'INSERT' 
+                ? (entry.likes_count || 0) + 1 
+                : (entry.likes_count || 0) - 1
+            };
+          }
+          return entry;
+        })
+      );
+    });
+
+    // Subscribe to post comments changes
+    realtimeService.subscribeToPostComments((payload) => {
+      setCommunityEntries(prev => 
+        prev.map(entry => {
+          if (entry.id === payload.new?.post_id) {
+            return {
+              ...entry,
+              post_comments: payload.eventType === 'INSERT' 
+                ? [...(entry.post_comments || []), payload.new]
+                : entry.post_comments?.filter(comment => comment.id !== payload.old?.id)
+            };
+          }
+          return entry;
+        })
+      );
+    });
   };
 
-  const handleLikeEntry = (entryId: string) => {
-    setCommunityEntries(prev => 
-      prev.map(entry => 
-        entry.id === entryId 
-          ? { ...entry, likes: entry.likes + 1 }
-          : entry
-      )
-    );
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserData(session.user);
+        setAppState('main');
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setUserData({
+          username: '',
+          readingPlan: '',
+          profilePicture: null,
+          streaks: 0,
+          totalVisits: 0
+        });
+        setJournalEntries([]);
+        setCommunityEntries([]);
+        setIsFacilitator(false);
+        setAppState('auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleOnboardingComplete = async (data: { username: string; readingPlan: string; profilePicture?: string | null }) => {
+    try {
+      setUserData(prev => ({ ...prev, ...data }));
+      
+      // Update user profile in database
+      if (currentUser) {
+        await userService.upsertUserProfile({
+          id: currentUser.id,
+          email: currentUser.email,
+          username: data.username,
+          profile_picture: data.profilePicture,
+          reading_plan: data.readingPlan,
+          is_facilitator: isFacilitator
+        });
+      }
+      
+      setAppState('main');
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+    }
   };
 
-  const handleAddPrayerRequest = (prayerRequest: { title: string; content: string; isAnonymous: boolean }) => {
-    const newEntry = {
-      id: Date.now().toString(),
-      username: prayerRequest.isAnonymous ? 'Anonymous' : userData.username,
-      avatar: prayerRequest.isAnonymous ? null : userData.profilePicture,
-      day: 0,
-      date: new Date().toISOString(),
-      content: `${prayerRequest.title}\n\n${prayerRequest.content}`,
-      type: 'prayer' as const,
-      likes: 0,
-      comments: []
-    };
-    setCommunityEntries(prev => [...prev, newEntry]);
+  const handleToggleFacilitator = (value: boolean) => {
+    setIsFacilitator(value);
+    try {
+      localStorage.setItem('ff_is_facilitator', value ? '1' : '0');
+    } catch {}
   };
 
-  const handleAddTestimony = (testimony: { title: string; content: string; isAnonymous: boolean }) => {
-    const newEntry = {
-      id: Date.now().toString(),
-      username: testimony.isAnonymous ? 'Anonymous' : userData.username,
-      avatar: testimony.isAnonymous ? null : userData.profilePicture,
-      day: 0,
-      date: new Date().toISOString(),
-      content: `${testimony.title}\n\n${testimony.content}`,
-      type: 'testimony' as const,
-      likes: 0,
-      comments: []
-    };
-    setCommunityEntries(prev => [...prev, newEntry]);
+  const handleSaveJournalEntry = async (entry: any) => {
+    if (!currentUser) return;
+    
+    try {
+      // Save to database
+      const savedEntry = await journalService.createJournalEntry({
+        user_id: currentUser.id,
+        day: entry.day,
+        title: entry.title,
+        content: entry.content,
+        insight: entry.insight,
+        attention: entry.attention,
+        commitment: entry.commitment,
+        task: entry.task,
+        system: entry.system,
+        prayer: entry.prayer
+      });
+      
+      // Update local state
+      setJournalEntries(prev => [savedEntry, ...prev]);
+      
+      // Create community post if sharing
+      if (entry.shareToCommunity) {
+        await communityService.createCommunityPost({
+          user_id: currentUser.id,
+          username: userData.username,
+          avatar: userData.profilePicture,
+          day: entry.day,
+          content: entry.content,
+          post_type: 'insight',
+          insight: entry.insight,
+          attention: entry.attention,
+          commitment: entry.commitment,
+          task: entry.task,
+          system: entry.system,
+          prayer: entry.prayer
+        });
+      }
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+    }
+  };
+
+  const handleAddComment = async (entryId: string, comment: string) => {
+    if (!currentUser) return;
+    
+    try {
+      await communityService.addComment(
+        entryId,
+        currentUser.id,
+        userData.username,
+        userData.profilePicture || '',
+        comment
+      );
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleLikeEntry = async (entryId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      await communityService.togglePostLike(entryId, currentUser.id);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
+  const handleAddPrayerRequest = async (prayerRequest: { title: string; content: string; isAnonymous: boolean }) => {
+    if (!currentUser) return;
+    
+    try {
+      await communityService.createCommunityPost({
+        user_id: currentUser.id,
+        username: prayerRequest.isAnonymous ? 'Anonymous' : userData.username,
+        avatar: prayerRequest.isAnonymous ? null : userData.profilePicture,
+        day: 0,
+        content: `${prayerRequest.title}\n\n${prayerRequest.content}`,
+        post_type: 'prayer'
+      });
+    } catch (error) {
+      console.error('Error adding prayer request:', error);
+    }
+  };
+
+  const handleAddTestimony = async (testimony: { title: string; content: string; isAnonymous: boolean }) => {
+    if (!currentUser) return;
+    
+    try {
+      await communityService.createCommunityPost({
+        user_id: currentUser.id,
+        username: testimony.isAnonymous ? 'Anonymous' : userData.username,
+        avatar: testimony.isAnonymous ? null : userData.profilePicture,
+        day: 0,
+        content: `${testimony.title}\n\n${testimony.content}`,
+        post_type: 'testimony'
+      });
+    } catch (error) {
+      console.error('Error adding testimony:', error);
+    }
   };
 
   if (appState === 'splash') {
@@ -181,14 +406,38 @@ const AppLayout: React.FC = () => {
   }
 
   if (appState === 'auth') {
-    return <AuthScreen onAuthComplete={handleAuthComplete} />;
+    return <AuthScreen onAuthComplete={handleAuthComplete} onFacilitatorLogin={() => setAppState('facilitator-login')} />;
+  }
+
+  if (appState === 'facilitator-login') {
+    return (
+      <FacilitatorLogin 
+        onLoginSuccess={(isNewFacilitator) => {
+          setIsFacilitator(true);
+          try { localStorage.setItem('ff_is_facilitator', '1'); } catch {}
+          try { localStorage.setItem('ff_user_session', '1'); } catch {}
+          if (isNewFacilitator) {
+            setAppState('onboarding');
+          } else {
+            setAppState('main');
+          }
+        }} 
+        onBack={() => {
+          // Leaving facilitator flow: drop facilitator privileges
+          setIsFacilitator(false);
+          try { localStorage.setItem('ff_is_facilitator', '0'); } catch {}
+          setAppState('auth');
+        }} 
+      />
+    );
   }
 
   if (appState === 'onboarding') {
     return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
-      const renderActiveTab = () => {
+
+  const renderActiveTab = () => {
         switch (activeTab) {
           case 'home':
             return (
@@ -215,7 +464,15 @@ const AppLayout: React.FC = () => {
                 onLikeEntry={handleLikeEntry}
                 onAddPrayerRequest={handleAddPrayerRequest}
                 onAddTestimony={handleAddTestimony}
+                currentUserId="current-user"
               />
+            );
+          case 'announce':
+            return (
+              <div className="p-4 pb-28 max-w-xl mx-auto">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">New Announcement</h2>
+                <AnnouncementForm />
+              </div>
             );
           default:
             return <HomePage streaks={userData.streaks} totalVisits={userData.totalVisits} readingPlan={userData.readingPlan} />;
@@ -237,6 +494,7 @@ const AppLayout: React.FC = () => {
       <BottomNavigation 
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        showAnnouncements={isFacilitator}
       />
 
       <ProfileModal 
@@ -249,6 +507,13 @@ const AppLayout: React.FC = () => {
         onUpdateProfilePicture={(picture) => setUserData(prev => ({ ...prev, profilePicture: picture }))}
         isDarkMode={isDarkMode}
         onThemeToggle={() => setIsDarkMode(!isDarkMode)}
+        isFacilitator={isFacilitator}
+        onToggleFacilitator={handleToggleFacilitator}
+        journalEntries={journalEntries.length}
+        communityPosts={communityEntries.filter(entry => entry.username === userData.username).length}
+        totalLikes={communityEntries.reduce((total, entry) => total + entry.likes, 0)}
+        currentStreak={userData.streaks}
+        totalVisits={userData.totalVisits}
       />
     </div>
   );

@@ -49,7 +49,7 @@ const HomePage: React.FC<HomePageProps> = ({ streaks, totalVisits, readingPlan }
   return (
     <div className="p-4 space-y-6 pb-20">
       {/* Verse of the Day */}
-      <div className="bg-gradient-to-r from-red-800 to-yellow-600 rounded-2xl p-6 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-r from-red-800 to-yellow-600 rounded-2xl p-6 text-white relative overflow-hidden z-0">
         <div className="absolute inset-0 opacity-10">
           <img 
             src="https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881342382_a0f95d86.webp" 

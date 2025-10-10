@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import JournalSuccessModal from './JournalSuccessModal';
 
 interface JournalPageProps {
   currentDay: number;
@@ -16,6 +17,8 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastEntry, setLastEntry] = useState<any>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -31,11 +34,15 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
         ...formData,
         day: currentDay,
         date: new Date().toISOString(),
-        id: Date.now()
+        id: Date.now(),
+        title: `Day ${currentDay} Reflection`,
+        content: `INSIGHT: ${formData.insight}\n\nATTENTION: ${formData.attention}\n\nCOMMITMENT: ${formData.commitment}\n\nTASK: ${formData.task}\n\nSYSTEM: ${formData.system}\n\nPRAYER: ${formData.prayer}`
       };
       onSaveEntry(entry);
+      setLastEntry(entry);
       setIsSaving(false);
       setSaved(true);
+      setShowSuccessModal(true);
       setTimeout(() => setSaved(false), 3000);
     }, 1000);
   };
@@ -182,6 +189,15 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
           </div>
         </form>
       </div>
+      
+      {/* Success Modal */}
+      {lastEntry && (
+        <JournalSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => setShowSuccessModal(false)}
+          entry={lastEntry}
+        />
+      )}
     </div>
   );
 };

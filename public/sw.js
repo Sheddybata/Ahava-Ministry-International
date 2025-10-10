@@ -4,7 +4,7 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/src/main.tsx',
-  '/Ahava Logo.png',
+  '/FaithFlow logo.jpg',
   '/manifest.json'
 ];
 
@@ -43,6 +43,60 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    })
+  );
+});
+
+// Handle push events
+self.addEventListener('push', (event) => {
+  try {
+    const data = event.data ? event.data.json() : {};
+    const title = data.title || 'FaithFlow Announcement';
+    const body = data.body || 'You have a new announcement';
+    const icon = '/FaithFlow logo.jpg';
+    const url = data.url || '/';
+
+    event.waitUntil((async () => {
+      // Show system notification
+      await self.registration.showNotification(title, {
+        body,
+        icon,
+        data: { url },
+        badge: icon
+      });
+      // Notify open clients to update in-app badge
+      const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of allClients) {
+        client.postMessage({ type: 'NEW_NOTIFICATION' });
+      }
+    })());
+  } catch (e) {
+    // Fallback to a simple notification if payload is not JSON
+    event.waitUntil((async () => {
+      await self.registration.showNotification('FaithFlow', {
+        body: 'New announcement',
+        icon: '/FaithFlow logo.jpg'
+      });
+      const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of allClients) {
+        client.postMessage({ type: 'NEW_NOTIFICATION' });
+      }
+    })());
+  }
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification && event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          if (client.url.includes(url)) return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
     })
   );
 });
