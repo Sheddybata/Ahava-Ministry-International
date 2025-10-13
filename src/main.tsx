@@ -7,7 +7,8 @@ import { initializeNotifications } from './services/notifications'
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    const version = Date.now().toString();
+    navigator.serviceWorker.register(`/sw.js?v=${version}`)
       .then((registration) => {
         console.log('SW registered: ', registration);
         // Initialize web push notifications after SW is ready

@@ -1,5 +1,5 @@
 // Service Worker for FaithFlow PWA
-const CACHE_NAME = 'faithflow-v1';
+const CACHE_NAME = 'faithflow-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -19,16 +19,25 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first for assets to avoid stale caches
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+  event.respondWith((async () => {
+    try {
+      const networkResponse = await fetch(event.request);
+      const cache = await caches.open(CACHE_NAME);
+      // Clone and store a copy of successful GET requests
+      if (event.request.method === 'GET' && networkResponse && networkResponse.status === 200) {
+        cache.put(event.request, networkResponse.clone());
       }
-    )
-  );
+      return networkResponse;
+    } catch (err) {
+      // Fallback to cache if offline or fetch failed
+      const cacheResponse = await caches.match(event.request);
+      if (cacheResponse) return cacheResponse;
+      // As last resort, return a generic response
+      return new Response('Offline', { status: 503, statusText: 'Offline' });
+    }
+  })());
 });
 
 // Activate event - clean up old caches
