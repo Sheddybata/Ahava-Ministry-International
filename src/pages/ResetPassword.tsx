@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '@/services/database';
 
 const ResetPassword: React.FC = () => {
@@ -7,6 +8,7 @@ const ResetPassword: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // If user lands here from Supabase recovery link, a temporary session is active.
@@ -30,9 +32,11 @@ const ResetPassword: React.FC = () => {
     setSubmitting(true);
     try {
       await authService.updatePassword(newPassword);
-      setMessage('Password updated successfully. You can now sign in.');
+      setMessage('Password updated successfully. Redirecting to sign in...');
       setNewPassword('');
       setConfirmPassword('');
+      // Brief delay so the user sees success, then return to app root (Auth screen)
+      setTimeout(() => navigate('/'), 1200);
     } catch (err: any) {
       setError(err?.message || 'Failed to update password.');
     } finally {
