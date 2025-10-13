@@ -338,9 +338,8 @@ export const authService = {
   // Request password reset email
   async requestPasswordReset(email: string) {
     const baseRedirect = import.meta.env.VITE_AUTH_REDIRECT_URL as string | undefined;
-    // For hash-based routing, ensure Supabase sends users to the hash route
     const redirectTo = baseRedirect
-      ? `${baseRedirect.replace(/\/$/, '')}/#/reset-password`
+      ? `${baseRedirect.replace(/\/$/, '')}/reset-password`
       : undefined;
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
