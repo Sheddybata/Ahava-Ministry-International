@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://xmhopsdfmadqltufbmeq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaG9wc2RmbWFkcWx0dWZibWVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjkxMDEsImV4cCI6MjA3NTM0NTEwMX0.2oqmo0rXR5xHNBVE1OaiQfICH1Pp3onmG8zrw0aif2A';
+// Read from Vite env vars. Ensure these are set in .env/.env.local
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

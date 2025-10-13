@@ -13,6 +13,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +31,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
       } else {
         // Signup attempt
         await authService.signUp(email, password, email.split('@')[0]);
-        onAuthComplete(true); // New user - goes to onboarding
+        // Show check email screen (email confirmation)
+        setShowCheckEmail(true);
       }
     } catch (error: any) {
       if (error.message.includes('Invalid login credentials')) {
@@ -45,11 +49,27 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
 
   const handleForgotPassword = () => {
     setShowForgotPassword(true);
-    // Simulate sending reset email
-    setTimeout(() => {
+    setForgotEmail(email || '');
+    setError('');
+  };
+
+  const submitForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!forgotEmail) {
+      setError('Please enter your email.');
+      return;
+    }
+    setForgotSubmitting(true);
+    try {
+      await authService.requestPasswordReset(forgotEmail);
+      alert('Password reset link sent. Please check your email.');
       setShowForgotPassword(false);
-      alert('Password reset link sent to your email!');
-    }, 2000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send reset email.');
+    } finally {
+      setForgotSubmitting(false);
+    }
   };
 
   const handleGoogleAuth = () => {
@@ -81,9 +101,63 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
                 <span className="text-2xl">📧</span>
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">Reset Password</h3>
-              <p className="text-gray-600 mb-6">We're sending a password reset link to your email...</p>
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-800 mx-auto"></div>
+              <p className="text-gray-600 mb-6">Enter your email to receive a reset link.</p>
             </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">{error}</div>
+            )}
+            <form onSubmit={submitForgotPassword} className="space-y-4">
+              <input
+                type="email"
+                placeholder="Email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600"
+                required
+              />
+              <button
+                type="submit"
+                disabled={forgotSubmitting}
+                className="w-full bg-red-700 text-white py-3 rounded-xl font-semibold hover:bg-red-800 transition-colors disabled:opacity-50"
+              >
+                {forgotSubmitting ? 'Sending...' : 'Send reset link'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full bg-gray-100 text-gray-800 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Back
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showCheckEmail) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-amber-600 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-3xl shadow-2xl p-8">
+            <div className="text-center mb-8">
+              <img 
+                src="/FaithFlow logo.jpg" 
+                alt="FaithFlow Logo" 
+                className="w-24 h-24 mx-auto mb-4 rounded-full"
+              />
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Check your email</h2>
+              <p className="text-gray-600">We sent a confirmation link to <span className="font-medium">{email}</span>.</p>
+              <p className="text-gray-500 text-sm mt-2">Click the link to activate your account.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCheckEmail(false)}
+              className="w-full bg-red-700 text-white py-3 rounded-xl font-semibold hover:bg-red-800 transition-colors"
+            >
+              Back to sign in
+            </button>
           </div>
         </div>
       </div>

@@ -310,11 +310,13 @@ export const realtimeService = {
 export const authService = {
   // Sign up with email
   async signUp(email: string, password: string, username: string) {
+    const redirectTo = import.meta.env.VITE_AUTH_REDIRECT_URL as string | undefined;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { username }
+        data: { username },
+        emailRedirectTo: redirectTo,
       }
     });
     
@@ -329,6 +331,29 @@ export const authService = {
       password
     });
     
+    if (error) throw error;
+    return data;
+  },
+
+  // Request password reset email
+  async requestPasswordReset(email: string) {
+    const baseRedirect = import.meta.env.VITE_AUTH_REDIRECT_URL as string | undefined;
+    // For hash-based routing, ensure Supabase sends users to the hash route
+    const redirectTo = baseRedirect
+      ? `${baseRedirect.replace(/\/$/, '')}/#/reset-password`
+      : undefined;
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  // Update password after redirect (recovery session)
+  async updatePassword(newPassword: string) {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
     if (error) throw error;
     return data;
   },
