@@ -3,20 +3,22 @@ const CACHE_NAME = 'faithflow-v3';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/FaithFlow logo.jpg',
-  '/manifest.json'
+  '/manifest.json',
+  '/FaithFlow logo.jpg'
 ];
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-  );
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      console.log('Opened cache');
+      // Attempt to cache core URLs, but don't fail install if any single URL fails
+      await Promise.allSettled(urlsToCache.map((u) => cache.add(u)));
+    } catch (_) {
+      // Ignore cache errors during install to avoid breaking page load
+    }
+  })());
   // Activate updated SW immediately
   self.skipWaiting();
 });
