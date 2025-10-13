@@ -1,6 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/((?!assets|sw\.js|manifest\.json).*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/(assets/.*|sw\\.js|manifest\\.json)", "dest": "/$1" },
+    { "src": "/.*", "dest": "/index.html" }
   ]
 }
 
