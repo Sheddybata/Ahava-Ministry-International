@@ -17,6 +17,8 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
+  // Activate updated SW immediately
+  self.skipWaiting();
 });
 
 // Fetch event - network first for assets to avoid stale caches
@@ -54,6 +56,8 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Take control of uncontrolled clients right away
+  self.clients.claim();
 });
 
 // Handle push events
