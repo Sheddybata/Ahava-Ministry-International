@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
 import { authService } from '@/services/database';
 
 const ResetPassword: React.FC = () => {
@@ -9,10 +10,31 @@ const ResetPassword: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // If user lands here from Supabase recovery link, a temporary session is active.
-    // We only need to collect the new password and call update.
+    // Establish recovery session from URL fragment tokens if present
+    (async () => {
+      try {
+        const hash = window.location.hash.startsWith('#') ? window.location.hash.substring(1) : '';
+        const params = new URLSearchParams(hash);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        if (access_token && refresh_token) {
+          const { error: setErr } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (setErr) {
+            setError(setErr.message || 'Failed to establish recovery session.');
+          } else {
+            // Optional: clean the hash to avoid leaking tokens in URL
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        }
+      } catch (e: any) {
+        // Ignore parsing errors
+      } finally {
+        setInitializing(false);
+      }
+    })();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +65,21 @@ const ResetPassword: React.FC = () => {
       setSubmitting(false);
     }
   };
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-amber-600 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">⏳</span>
+            </div>
+            <p className="text-gray-700">Preparing secure session...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-amber-600 flex items-center justify-center p-4">
