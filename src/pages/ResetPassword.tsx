@@ -54,11 +54,13 @@ const ResetPassword: React.FC = () => {
     setSubmitting(true);
     try {
       await authService.updatePassword(newPassword);
+      // Sign out to clear recovery session, then show message and redirect
+      await authService.signOut();
       setMessage('Password updated successfully. Redirecting to sign in...');
       setNewPassword('');
       setConfirmPassword('');
-      // Brief delay so the user sees success, then return to app root (Auth screen)
-      setTimeout(() => navigate('/'), 1200);
+      // Brief delay so user sees success, then redirect to auth screen
+      setTimeout(() => navigate('/'), 1500);
     } catch (err: any) {
       setError(err?.message || 'Failed to update password.');
     } finally {
