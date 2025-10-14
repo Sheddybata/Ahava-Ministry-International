@@ -27,6 +27,7 @@ const AppLayout: React.FC = () => {
   const [userData, setUserData] = useState({
     username: '',
     readingPlan: '',
+    readingStartDate: null as string | null,
     profilePicture: null as string | null,
     streaks: 0,
     totalVisits: 0
@@ -163,29 +164,59 @@ const AppLayout: React.FC = () => {
 
   const loadUserData = async (user: any) => {
     try {
-      // Get user profile
-      const profile = await userService.getUserProfile(user.id);
-      
       setCurrentUser(user);
+      let profile: any | null = null;
+      try {
+        profile = await userService.getUserProfile(user.id);
+      } catch (_) {
+        profile = null;
+      }
+
+      if (!profile) {
+        const fallbackUsername = (user.email || '').split('@')[0] || 'New User';
+        const today = new Date().toISOString().slice(0, 10);
+        await userService.upsertUserProfile({
+          id: user.id,
+          email: user.email,
+          username: fallbackUsername,
+          reading_plan: '40-days',
+          reading_start_date: today,
+          is_facilitator: false
+        });
+        setUserData(prev => ({
+          ...prev,
+          username: fallbackUsername,
+          readingPlan: '40-days',
+          readingStartDate: today,
+          profilePicture: null,
+          streaks: 0,
+          totalVisits: 0
+        }));
+        setIsFacilitator(false);
+        setAppState('onboarding');
+        return;
+      }
+
       setUserData({
         username: profile.username,
         readingPlan: profile.reading_plan,
+        readingStartDate: profile.reading_start_date || null,
         profilePicture: profile.profile_picture,
         streaks: profile.current_streak,
         totalVisits: profile.total_visits
       });
-      
       setIsFacilitator(profile.is_facilitator);
-      
-      // Load journal entries
+
       const journalData = await journalService.getUserJournalEntries(user.id);
       setJournalEntries(journalData);
-      
-      // Load community posts
+
       const communityData = await communityService.getCommunityPosts();
-      setCommunityEntries(communityData);
-      
-      // Set up real-time subscriptions
+      const mappedCommunity = (communityData || []).map((row: any) => ({
+        ...row,
+        is_facilitator: row?.users?.is_facilitator ?? false,
+      }));
+      setCommunityEntries(mappedCommunity);
+
       setupRealtimeSubscriptions();
       
     } catch (error) {
@@ -255,6 +286,7 @@ const AppLayout: React.FC = () => {
         setUserData({
           username: '',
           readingPlan: '',
+          readingStartDate: null,
           profilePicture: null,
           streaks: 0,
           totalVisits: 0

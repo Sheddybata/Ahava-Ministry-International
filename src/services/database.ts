@@ -27,6 +27,7 @@ export const userService = {
     username: string;
     profile_picture?: string;
     reading_plan?: string;
+    reading_start_date?: string;
     current_streak?: number;
     total_visits?: number;
     is_facilitator?: boolean;

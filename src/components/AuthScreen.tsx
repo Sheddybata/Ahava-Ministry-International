@@ -31,8 +31,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
       } else {
         // Signup attempt
         await authService.signUp(email, password, email.split('@')[0]);
-        // Show check email screen (email confirmation)
-        setShowCheckEmail(true);
+        // Proceed directly to onboarding; email confirmation can be done later
+        onAuthComplete(true);
       }
     } catch (error: any) {
       if (error.message.includes('Invalid login credentials')) {
