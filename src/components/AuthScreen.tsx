@@ -37,6 +37,19 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
     throw lastError;
   };
 
+  const waitForSession = async (timeoutMs = 1500): Promise<boolean> => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const at = data?.session?.access_token;
+        if (at) return true;
+      } catch {}
+      await new Promise(r => setTimeout(r, 150));
+    }
+    return false;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -51,7 +64,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
         if (at && rt) {
           try { await supabase.auth.setSession({ access_token: at, refresh_token: rt }); } catch {}
         }
+        const ok = await waitForSession();
+        if (!ok) {
+          setError('Signed in but session is not ready. Please try again.');
+          return;
+        }
         onAuthComplete(false);
+        if (import.meta.env.DEV) {
+          try { window.location.reload(); } catch {}
+        }
       } else {
         const signUpResult: any = await withRetry(() => withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 12000));
         const at = signUpResult?.session?.access_token;
@@ -60,7 +81,15 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
           try { await supabase.auth.setSession({ access_token: at, refresh_token: rt }); } catch {}
         }
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
+        const ok = await waitForSession();
+        if (!ok) {
+          setError('Account created but session is not ready. Please sign in.');
+          return;
+        }
         onAuthComplete(true);
+        if (import.meta.env.DEV) {
+          try { window.location.reload(); } catch {}
+        }
       }
     } catch (error: any) {
       if (error?.message === 'Request timed out') {
