@@ -13,9 +13,15 @@ const AnnouncementForm: React.FC = () => {
     if (!canSend) return;
     setSending(true);
     try {
+      let accessToken: string | null = null;
+      try {
+        const s = localStorage.getItem('sb-access-token');
+        accessToken = s ? JSON.parse(s) : null;
+      } catch {}
       const res = await fetch('/api/announcements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        ...(accessToken ? { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` } } : {}),
         body: JSON.stringify({ title, message, link })
       });
       if (!res.ok) throw new Error('Failed to send');

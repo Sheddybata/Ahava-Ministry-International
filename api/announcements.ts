@@ -1,3 +1,72 @@
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL as string;
+const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE as string;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    const token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : undefined;
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+
+    const userId = userData.user.id;
+    const { data: profile, error: profileErr } = await supabase
+      .from('users')
+      .select('is_facilitator')
+      .eq('id', userId)
+      .single();
+
+    if (profileErr) {
+      res.status(500).json({ error: 'User lookup failed' });
+      return;
+    }
+
+    if (!profile?.is_facilitator) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    const { title, message, link } = req.body || {};
+    if (!title || !message) {
+      res.status(400).json({ error: 'Missing title or message' });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('announcements')
+      .insert({ facilitator_id: userId, title, message, link })
+      .select()
+      .single();
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    res.status(200).json({ ok: true, announcement: data });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || 'Unexpected error' });
+  }
+}
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
