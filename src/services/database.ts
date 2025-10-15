@@ -137,6 +137,7 @@ export const communityService = {
       .from('community_posts')
       .select(`
         *,
+        users!community_posts_user_id_fkey(is_facilitator),
         post_likes(id, user_id),
         post_comments(id, user_id, username, avatar, content, created_at)
       `)
@@ -307,17 +308,34 @@ export const realtimeService = {
   }
 };
 
+// Statistics / leaderboard
+export const statsService = {
+  async getLeaderboard() {
+    // Prefer RPC if created; fallback to view select
+    try {
+      const { data, error } = await supabase.rpc('get_leaderboard');
+      if (error) throw error;
+      return data as any[];
+    } catch (_) {
+      const { data, error } = await supabase
+        .from('user_statistics')
+        .select('*')
+        .order('current_streak', { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    }
+  }
+};
+
 // Authentication helpers
 export const authService = {
   // Sign up with email
-  async signUp(email: string, password: string, username: string) {
-    const redirectTo = import.meta.env.VITE_AUTH_REDIRECT_URL as string | undefined;
+  async signUp(email: string, password: string, username: string, phone?: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { username },
-        emailRedirectTo: redirectTo,
+        data: { username, phone },
       }
     });
     

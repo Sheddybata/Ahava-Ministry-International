@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SplashScreen from './SplashScreen';
 import AuthScreen from './AuthScreen';
-import FacilitatorLogin from './FacilitatorLogin';
+// import FacilitatorLogin from './FacilitatorLogin';
 import OnboardingScreen from './OnboardingScreen';
 import TopHeader from './TopHeader';
 import BottomNavigation from './BottomNavigation';
@@ -18,11 +18,11 @@ import {
   communityService, 
   announcementService,
   realtimeService,
-  authService 
+  authService
 } from '@/services/database';
 
 const AppLayout: React.FC = () => {
-  const [appState, setAppState] = useState<'splash' | 'auth' | 'facilitator-login' | 'onboarding' | 'main'>('splash');
+  const [appState, setAppState] = useState<'splash' | 'auth' | 'onboarding' | 'main'>('splash');
   const [activeTab, setActiveTab] = useState('home');
   const [userData, setUserData] = useState({
     username: '',
@@ -40,63 +40,18 @@ const AppLayout: React.FC = () => {
   const [isFacilitator, setIsFacilitator] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
-  // Mock leaderboard data
-  const leaderboardUsers = [
-    {
-      id: '1',
-      username: 'Ella M.',
-      avatar: '/ella profile picture (1).png',
-      streaks: 45,
-      entries: 42,
-      position: 1
-    },
-    {
-      id: '2',
-      username: 'Elbuba K.',
-      avatar: '/El bub profile.png',
-      streaks: 38,
-      entries: 35,
-      position: 2
-    },
-    {
-      id: '3',
-      username: 'James Bata',
-      avatar: '/James Bata profile.jpg',
-      streaks: 32,
-      entries: 30,
-      position: 3
-    },
-    {
-      id: '4',
-      username: 'Ahava Ministry',
-      avatar: '/Ahava Logo.png',
-      streaks: 28,
-      entries: 25,
-      position: 4
-    },
-    {
-      id: '5',
-      username: 'FaithFlow Team',
-      avatar: '/FaithFlow logo.jpg',
-      streaks: 24,
-      entries: 22,
-      position: 5
-    }
-  ];
+  const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate user visits tracking
+    // Increment total visits when entering main
     if (appState === 'main') {
-      setUserData(prev => ({ ...prev, totalVisits: prev.totalVisits + 1, streaks: 15 }));
+      setUserData(prev => ({ ...prev, totalVisits: prev.totalVisits + 1 }));
     }
   }, [appState]);
 
   const handleSplashComplete = () => {
-    // After splash, decide where to go based on persisted session
-    const hasSession = (() => {
-      try { return localStorage.getItem('ff_user_session') === '1'; } catch { return false; }
-    })();
-    setAppState(hasSession ? 'main' : 'auth');
+    // After splash, go to auth unless we already have a session
+    setAppState('auth');
   };
 
   const handleAuthComplete = async (isNewUser?: boolean) => {
@@ -146,13 +101,7 @@ const AppLayout: React.FC = () => {
         await loadUserData(session.user);
         setAppState('main');
       } else {
-        // Check for local session
-        const hasLocalSession = localStorage.getItem('ff_user_session') === '1';
-        if (hasLocalSession) {
-          setAppState('main');
-        } else {
-          setAppState('auth');
-        }
+        setAppState('auth');
       }
     } catch (error) {
       console.error('Error initializing app:', error);
@@ -175,13 +124,14 @@ const AppLayout: React.FC = () => {
       if (!profile) {
         const fallbackUsername = (user.email || '').split('@')[0] || 'New User';
         const today = new Date().toISOString().slice(0, 10);
+        const makeFacilitator = (user.email || '').toLowerCase() === 'admin@faithflow.org';
         await userService.upsertUserProfile({
           id: user.id,
           email: user.email,
           username: fallbackUsername,
           reading_plan: '40-days',
           reading_start_date: today,
-          is_facilitator: false
+          is_facilitator: makeFacilitator
         });
         setUserData(prev => ({
           ...prev,
@@ -192,7 +142,7 @@ const AppLayout: React.FC = () => {
           streaks: 0,
           totalVisits: 0
         }));
-        setIsFacilitator(false);
+        setIsFacilitator(makeFacilitator);
         setAppState('onboarding');
         return;
       }
@@ -206,6 +156,24 @@ const AppLayout: React.FC = () => {
         totalVisits: profile.total_visits
       });
       setIsFacilitator(profile.is_facilitator);
+
+      // Auto-elevate facilitator for specific admin email
+      if ((user.email || '').toLowerCase() === 'admin@faithflow.org' && !profile.is_facilitator) {
+        try {
+          await userService.upsertUserProfile({
+            id: user.id,
+            email: user.email,
+            username: profile.username,
+            profile_picture: profile.profile_picture,
+            reading_plan: profile.reading_plan,
+            reading_start_date: profile.reading_start_date,
+            is_facilitator: true
+          });
+          setIsFacilitator(true);
+        } catch (e) {
+          console.error('Failed to auto-elevate facilitator:', e);
+        }
+      }
 
       const journalData = await journalService.getUserJournalEntries(user.id);
       setJournalEntries(journalData);
@@ -307,14 +275,21 @@ const AppLayout: React.FC = () => {
       
       // Update user profile in database
       if (currentUser) {
+        let phone: string | null = null;
+        try { phone = localStorage.getItem('ff_signup_phone'); } catch {}
         await userService.upsertUserProfile({
           id: currentUser.id,
           email: currentUser.email,
           username: data.username,
           profile_picture: data.profilePicture,
           reading_plan: data.readingPlan,
+          // set start date if not already set
+          reading_start_date: (userData as any).readingStartDate || new Date().toISOString().slice(0, 10),
           is_facilitator: isFacilitator
         });
+        try { localStorage.removeItem('ff_signup_phone'); } catch {}
+      } else {
+        // If no session (unlikely with confirmation OFF), do nothing special
       }
       
       setAppState('main');
@@ -438,31 +413,10 @@ const AppLayout: React.FC = () => {
   }
 
   if (appState === 'auth') {
-    return <AuthScreen onAuthComplete={handleAuthComplete} onFacilitatorLogin={() => setAppState('facilitator-login')} />;
+    return <AuthScreen onAuthComplete={handleAuthComplete} onFacilitatorLogin={() => setAppState('auth')} />;
   }
 
-  if (appState === 'facilitator-login') {
-    return (
-      <FacilitatorLogin 
-        onLoginSuccess={(isNewFacilitator) => {
-          setIsFacilitator(true);
-          try { localStorage.setItem('ff_is_facilitator', '1'); } catch {}
-          try { localStorage.setItem('ff_user_session', '1'); } catch {}
-          if (isNewFacilitator) {
-            setAppState('onboarding');
-          } else {
-            setAppState('main');
-          }
-        }} 
-        onBack={() => {
-          // Leaving facilitator flow: drop facilitator privileges
-          setIsFacilitator(false);
-          try { localStorage.setItem('ff_is_facilitator', '0'); } catch {}
-          setAppState('auth');
-        }} 
-      />
-    );
-  }
+  // Facilitator login removed; use normal auth screen
 
   if (appState === 'onboarding') {
     return <OnboardingScreen onComplete={handleOnboardingComplete} />;
@@ -472,20 +426,41 @@ const AppLayout: React.FC = () => {
   const renderActiveTab = () => {
         switch (activeTab) {
           case 'home':
-            return (
-              <HomePage
-                streaks={userData.streaks}
-                totalVisits={userData.totalVisits}
-                readingPlan={userData.readingPlan}
-              />
-            );
+            {
+              const currentDay = (() => {
+                if (!userData.readingStartDate) return 1;
+                const start = new Date(userData.readingStartDate);
+                const today = new Date();
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const diff = Math.floor((today.setHours(0,0,0,0) as any - start.setHours(0,0,0,0) as any) / msPerDay);
+                return Math.max(1, diff + 1);
+              })();
+              return (
+                <HomePage
+                  streaks={userData.streaks}
+                  totalVisits={userData.totalVisits}
+                  readingPlan={userData.readingPlan}
+                  currentDay={currentDay}
+                />
+              );
+            }
           case 'journal':
-            return (
-              <JournalPage
-                currentDay={15}
-                onSaveEntry={handleSaveJournalEntry}
-              />
-            );
+            {
+              const currentDay = (() => {
+                if (!userData.readingStartDate) return 1;
+                const start = new Date(userData.readingStartDate);
+                const today = new Date();
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const diff = Math.floor((today.setHours(0,0,0,0) as any - start.setHours(0,0,0,0) as any) / msPerDay);
+                return Math.max(1, diff + 1);
+              })();
+              return (
+                <JournalPage
+                  currentDay={currentDay}
+                  onSaveEntry={handleSaveJournalEntry}
+                />
+              );
+            }
           case 'leaderboard':
             return <LeaderboardPage users={leaderboardUsers} />;
           case 'community':
@@ -507,7 +482,17 @@ const AppLayout: React.FC = () => {
               </div>
             );
           default:
-            return <HomePage streaks={userData.streaks} totalVisits={userData.totalVisits} readingPlan={userData.readingPlan} />;
+            {
+              const currentDay = (() => {
+                if (!userData.readingStartDate) return 1;
+                const start = new Date(userData.readingStartDate);
+                const today = new Date();
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const diff = Math.floor((today.setHours(0,0,0,0) as any - start.setHours(0,0,0,0) as any) / msPerDay);
+                return Math.max(1, diff + 1);
+              })();
+              return <HomePage streaks={userData.streaks} totalVisits={userData.totalVisits} readingPlan={userData.readingPlan} currentDay={currentDay} />;
+            }
         }
       };
 

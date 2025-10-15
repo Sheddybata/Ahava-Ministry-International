@@ -6,17 +6,16 @@ interface HomePageProps {
   streaks: number;
   totalVisits: number;
   readingPlan: string;
+  currentDay: number;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ streaks, totalVisits, readingPlan }) => {
+const HomePage: React.FC<HomePageProps> = ({ streaks, totalVisits, readingPlan, currentDay }) => {
   const [showBibleReader, setShowBibleReader] = useState(false);
   const verseOfTheDay = {
     verse: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, to give you hope and a future.",
     reference: "Jeremiah 29:11"
   };
 
-  // Get today's reading from the reading plan
-  const currentDay = 15; // This would normally be calculated based on when the user started
   const todayReadingData = getTodaysReading(readingPlan, currentDay);
   
   // Get total days based on reading plan
@@ -35,12 +34,12 @@ const HomePage: React.FC<HomePageProps> = ({ streaks, totalVisits, readingPlan }
   const totalDays = getTotalDays(readingPlan);
   
   const todayReading = todayReadingData ? {
-    day: todayReadingData.day,
+    day: currentDay,
     chapter: todayReadingData.chapter,
     title: todayReadingData.title,
     description: todayReadingData.description
   } : {
-    day: 15,
+    day: currentDay,
     chapter: "Matthew 5:1-16",
     title: "The Beatitudes",
     description: "Jesus' teaching on true blessedness"

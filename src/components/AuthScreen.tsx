@@ -3,10 +3,9 @@ import { authService } from '@/services/database';
 
 interface AuthScreenProps {
   onAuthComplete: (isNewUser?: boolean) => void;
-  onFacilitatorLogin: () => void;
 }
 
-const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLogin }) => {
+const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,27 +21,29 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
     e.preventDefault();
     setLoading(true);
     setError('');
+    const timeout = setTimeout(() => {
+      setError('Taking longer than expected. Please check your connection and try again.');
+    }, 10000);
 
     try {
       if (isLogin) {
-        // Login attempt
         await authService.signIn(email, password);
-        onAuthComplete(false); // Existing user - goes to main
+        onAuthComplete(false);
       } else {
-        // Signup attempt
-        await authService.signUp(email, password, email.split('@')[0]);
-        // Proceed directly to onboarding; email confirmation can be done later
+        await authService.signUp(email, password, email.split('@')[0], phone);
+        try { localStorage.setItem('ff_signup_phone', phone); } catch {}
         onAuthComplete(true);
       }
     } catch (error: any) {
-      if (error.message.includes('Invalid login credentials')) {
+      if (error?.message?.includes('Invalid login credentials')) {
         setError('Invalid credentials. Please check your email and password.');
-      } else if (error.message.includes('User already registered')) {
+      } else if (error?.message?.includes('User already registered')) {
         setError('An account with this email already exists. Please sign in instead.');
       } else {
-        setError('An error occurred. Please try again.');
+        setError(error?.message || 'An error occurred. Please try again.');
       }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -72,14 +73,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
     }
   };
 
-  const handleGoogleAuth = () => {
-    setLoading(true);
-    // Redirect to facilitator login instead of Google OAuth
-    setTimeout(() => {
-      setLoading(false);
-      onFacilitatorLogin();
-    }, 500);
-  };
+  // Removed facilitator button flow
 
   if (showForgotPassword) {
     return (
@@ -237,22 +231,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete, onFacilitatorLo
             </button>
           </form>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center disabled:opacity-50"
-          >
-            <span>Sign-in as an Administrator</span>
-          </button>
+          {/* Single sign-in only; facilitator login removed */}
 
           <div className="text-center mt-6">
             <button
