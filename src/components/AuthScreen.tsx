@@ -82,7 +82,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
           <div className="bg-white rounded-3xl shadow-2xl p-8">
             <div className="text-center mb-8">
               <img 
-                src="/faithflow-logo.jpg" 
+                src="/FaithFlow%20logo.jpg" 
                 alt="FaithFlow Logo" 
                 className="w-24 h-24 mx-auto mb-4 rounded-full"
               />
@@ -137,7 +137,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
           <div className="bg-white rounded-3xl shadow-2xl p-8">
             <div className="text-center mb-8">
               <img 
-                src="/faithflow-logo.jpg" 
+                src="/FaithFlow%20logo.jpg" 
                 alt="FaithFlow Logo" 
                 className="w-24 h-24 mx-auto mb-4 rounded-full"
               />
@@ -164,7 +164,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <div className="text-center mb-8">
             <img 
-              src="/faithflow-logo.jpg" 
+              src="/FaithFlow%20logo.jpg" 
               alt="FaithFlow Logo" 
               className="w-24 h-24 mx-auto mb-4 rounded-full"
             />
