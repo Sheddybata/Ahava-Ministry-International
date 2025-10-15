@@ -400,7 +400,7 @@ const AppLayout: React.FC = () => {
   }
 
   if (appState === 'auth') {
-    return <AuthScreen onAuthComplete={handleAuthComplete} onFacilitatorLogin={() => setAppState('auth')} />;
+    return <AuthScreen onAuthComplete={handleAuthComplete} />;
   }
 
   // Facilitator login removed; use normal auth screen

@@ -17,25 +17,30 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
   const [forgotSubmitting, setForgotSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
+    ]) as T;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const timeout = setTimeout(() => {
-      setError('Taking longer than expected. Please check your connection and try again.');
-    }, 10000);
-
     try {
       if (isLogin) {
-        await authService.signIn(email, password);
+        await withTimeout(authService.signIn(email, password), 10000);
         onAuthComplete(false);
       } else {
-        await authService.signUp(email, password, email.split('@')[0], phone);
+        await withTimeout(authService.signUp(email, password, email.split('@')[0], phone), 10000);
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
         onAuthComplete(true);
       }
     } catch (error: any) {
-      if (error?.message?.includes('Invalid login credentials')) {
+      if (error?.message === 'Request timed out') {
+        setError('Taking longer than expected. Please check your connection and try again.');
+      } else if (error?.message?.includes('Invalid login credentials')) {
         setError('Invalid credentials. Please check your email and password.');
       } else if (error?.message?.includes('User already registered')) {
         setError('An account with this email already exists. Please sign in instead.');
@@ -43,7 +48,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
         setError(error?.message || 'An error occurred. Please try again.');
       }
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   };
