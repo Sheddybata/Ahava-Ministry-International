@@ -29,11 +29,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
     setLoading(true);
     setError('');
     try {
+      const sanitizedEmail = email.trim();
       if (isLogin) {
-        await withTimeout(authService.signIn(email, password), 10000);
+        await withTimeout(authService.signIn(sanitizedEmail, password), 10000);
         onAuthComplete(false);
       } else {
-        await withTimeout(authService.signUp(email, password, email.split('@')[0], phone), 10000);
+        await withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 10000);
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
         onAuthComplete(true);
       }
