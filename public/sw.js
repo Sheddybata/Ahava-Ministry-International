@@ -1,5 +1,5 @@
 // Service Worker for FaithFlow PWA
-const CACHE_NAME = 'faithflow-v3';
+const CACHE_NAME = 'faithflow-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -23,14 +23,23 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Fetch event - network first for assets to avoid stale caches
+// Fetch event - NEVER cache auth or API calls
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // NEVER cache auth or API calls - always go to network
+  if (url.pathname.includes('/auth/') || url.pathname.includes('/api/') || event.request.method !== 'GET') {
+    return; // Let the request go to network without interference
+  }
+  
   event.respondWith((async () => {
     try {
       const networkResponse = await fetch(event.request);
       const cache = await caches.open(CACHE_NAME);
-      // Clone and store a copy of successful GET requests
-      if (event.request.method === 'GET' && networkResponse && networkResponse.status === 200) {
+      // Only cache static assets (images, CSS, JS)
+      if (networkResponse && networkResponse.status === 200 && 
+          (url.pathname.endsWith('.jpg') || url.pathname.endsWith('.png') || 
+           url.pathname.endsWith('.css') || url.pathname.endsWith('.js'))) {
         cache.put(event.request, networkResponse.clone());
       }
       return networkResponse;
