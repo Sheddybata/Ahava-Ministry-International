@@ -1,10 +1,10 @@
 // Service Worker for FaithFlow PWA
-const CACHE_NAME = 'faithflow-v3';
+const CACHE_NAME = 'faithflow-v4';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/FaithFlow logo.jpg'
+  '/faithflow-logo.jpg'
 ];
 
 // Install event - cache resources
@@ -25,6 +25,11 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - network first for assets to avoid stale caches
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  // Bypass SW for Supabase auth/storage and API routes to avoid interfering with login/API
+  if (url.hostname.endsWith('supabase.co') || url.hostname.endsWith('supabase.in') || url.pathname.startsWith('/api/')) {
+    return; // Let the request go to the network unmodified
+  }
   event.respondWith((async () => {
     try {
       const networkResponse = await fetch(event.request);
@@ -68,7 +73,7 @@ self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {};
     const title = data.title || 'FaithFlow Announcement';
     const body = data.body || 'You have a new announcement';
-    const icon = '/FaithFlow logo.jpg';
+    const icon = '/faithflow-logo.jpg';
     const url = data.url || '/';
 
     event.waitUntil((async () => {
@@ -90,7 +95,7 @@ self.addEventListener('push', (event) => {
     event.waitUntil((async () => {
       await self.registration.showNotification('FaithFlow', {
         body: 'New announcement',
-        icon: '/FaithFlow logo.jpg'
+        icon: '/faithflow-logo.jpg'
       });
       const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of allClients) {

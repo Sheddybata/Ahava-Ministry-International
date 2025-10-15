@@ -24,6 +24,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
     ]) as T;
   };
 
+  const withRetry = async <T,>(fn: () => Promise<T>, attempts = 2): Promise<T> => {
+    let lastError: any;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await fn();
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -31,10 +43,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
     try {
       const sanitizedEmail = email.trim();
       if (isLogin) {
-        await withTimeout(authService.signIn(sanitizedEmail, password), 10000);
+        await withRetry(() => withTimeout(authService.signIn(sanitizedEmail, password), 12000));
         onAuthComplete(false);
       } else {
-        await withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 10000);
+        await withRetry(() => withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 12000));
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
         onAuthComplete(true);
       }
