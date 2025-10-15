@@ -45,10 +45,14 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
       if (isLogin) {
         await withRetry(() => withTimeout(authService.signIn(sanitizedEmail, password), 12000));
         onAuthComplete(false);
+        // Force a fresh reload so production always reflects the new session
+        try { window.location.replace('/'); } catch {}
       } else {
         await withRetry(() => withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 12000));
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
         onAuthComplete(true);
+        // Force a fresh reload so production always reflects the new session
+        try { window.location.replace('/'); } catch {}
       }
     } catch (error: any) {
       if (error?.message === 'Request timed out') {
