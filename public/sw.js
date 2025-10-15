@@ -1,5 +1,5 @@
 // Service Worker for FaithFlow PWA
-const CACHE_NAME = 'faithflow-v4';
+const CACHE_NAME = 'faithflow-v5-auth-fix';
 const urlsToCache = [
   '/',
   '/index.html',

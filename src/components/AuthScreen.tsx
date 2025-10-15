@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { authService } from '@/services/database';
 
 interface AuthScreenProps {
-  onAuthComplete: (isNewUser?: boolean) => void;
+  onAuthComplete: (isNewUser?: boolean, user?: any) => void;
 }
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
@@ -27,12 +27,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
 
     try {
       if (isLogin) {
-        await authService.signIn(email, password);
-        onAuthComplete(false);
+        const { user } = await authService.signIn(email, password);
+        onAuthComplete(false, user);
       } else {
-        await authService.signUp(email, password, email.split('@')[0], phone);
+        const { user } = await authService.signUp(email, password, email.split('@')[0], phone);
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
-        onAuthComplete(true);
+        onAuthComplete(true, user);
       }
     } catch (error: any) {
       if (error?.message?.includes('Invalid login credentials')) {

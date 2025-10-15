@@ -6,7 +6,7 @@ import OnboardingScreen from './OnboardingScreen';
 import TopHeader from './TopHeader';
 import BottomNavigation from './BottomNavigation';
 import HomePage from './HomePage';
-import AnnouncementForm from './AnnouncementForm';
+// Removed AnnouncementForm import
 import JournalPage from './JournalPage';
 import LeaderboardPage from './LeaderboardPage';
 import CommunityPage from './CommunityPage';
@@ -37,7 +37,7 @@ const AppLayout: React.FC = () => {
   const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [communityEntries, setCommunityEntries] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isFacilitator, setIsFacilitator] = useState<boolean>(false);
+  // Removed facilitator functionality
   const [loading, setLoading] = useState(true);
 
   const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
@@ -54,26 +54,25 @@ const AppLayout: React.FC = () => {
     setAppState('auth');
   };
 
-  const handleAuthComplete = async (isNewUser?: boolean) => {
+  const handleAuthComplete = async (isNewUser?: boolean, user?: any) => {
     try {
-      // Ensure regular user sessions never have facilitator privileges
-      setIsFacilitator(false);
-      try { localStorage.setItem('ff_is_facilitator', '0'); } catch {}
+      console.log('🔐 Auth completed for user:', user?.email);
       
-      // Create user profile in database
-      if (currentUser) {
-        await userService.upsertUserProfile({
-          id: currentUser.id,
-          email: currentUser.email,
-          username: userData.username,
-          profile_picture: userData.profilePicture,
-          reading_plan: userData.readingPlan,
-          is_facilitator: false
-        });
+      // Set current user from auth result
+      if (user) {
+        setCurrentUser(user);
       }
       
-      // Persist user session
-      try { localStorage.setItem('ff_user_session', '1'); } catch {}
+      // SIMPLIFIED: Just store basic session info
+      try { 
+        localStorage.setItem('ff_user_session', '1'); 
+        localStorage.setItem('ff_user_email', user?.email || ''); 
+        console.log('💾 Session stored in localStorage');
+      } catch (e) {
+        console.error('❌ Failed to store session:', e);
+      }
+      
+      // Removed facilitator logic
       
       if (isNewUser) {
         // New users go through onboarding
@@ -83,7 +82,57 @@ const AppLayout: React.FC = () => {
         setAppState('main');
       }
     } catch (error) {
-      console.error('Error completing auth:', error);
+      console.error('💥 Error completing auth:', error);
+    }
+  };
+
+  const initializeApp = async () => {
+    try {
+      console.log('🔍 Checking for existing session...');
+      
+      // Check localStorage first as backup
+      const storedSession = localStorage.getItem('ff_user_session');
+      const storedEmail = localStorage.getItem('ff_user_email');
+      
+      if (storedSession === '1' && storedEmail) {
+        console.log('✅ Found stored session for:', storedEmail);
+        
+        // Try to get real session data, but don't wait too long
+        try {
+          const sessionPromise = authService.getSession();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Session timeout')), 1000)
+          );
+          
+          const session = await Promise.race([sessionPromise, timeoutPromise]);
+          if (session?.user) {
+            console.log('✅ Real session found, loading user data');
+            setCurrentUser(session.user);
+            await loadUserDataForRefresh(session.user);
+          }
+        } catch (timeoutError) {
+          console.log('⏰ Session check timeout, using stored session');
+          // Create a minimal user object from stored data
+          setCurrentUser({ email: storedEmail, id: 'local-user' });
+          setUserData(prev => ({
+            ...prev,
+            username: storedEmail.split('@')[0],
+            readingPlan: '40-days'
+          }));
+        }
+        
+        setAppState('main');
+        return;
+      }
+      
+      // No stored session - go to auth
+      console.log('❌ No stored session, going to auth');
+      setAppState('auth');
+    } catch (error) {
+      console.error('💥 Error initializing app:', error);
+      setAppState('auth');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,22 +141,76 @@ const AppLayout: React.FC = () => {
     initializeApp();
   }, []);
 
-  const initializeApp = async () => {
+  const loadUserDataForRefresh = async (user: any) => {
     try {
-      // Check for existing session
-      const session = await authService.getSession();
-      
-      if (session?.user) {
-        await loadUserData(session.user);
-        setAppState('main');
-      } else {
-        setAppState('auth');
+      let profile: any | null = null;
+      try {
+        profile = await userService.getUserProfile(user.id);
+      } catch (_) {
+        profile = null;
+      }
+
+      if (!profile) {
+        // For refresh, create a minimal profile but don't redirect to onboarding
+        const fallbackUsername = (user.email || '').split('@')[0] || 'New User';
+        const today = new Date().toISOString().slice(0, 10);
+        const makeFacilitator = (user.email || '').toLowerCase() === 'admin@faithflow.org';
+        
+        try {
+          await userService.upsertUserProfile({
+            id: user.id,
+            email: user.email,
+            username: fallbackUsername,
+            reading_plan: '40-days',
+            reading_start_date: today,
+            is_facilitator: makeFacilitator
+          });
+        } catch (_) {
+          // Ignore profile creation errors during refresh
+        }
+        
+        setUserData(prev => ({
+          ...prev,
+          username: fallbackUsername,
+          readingPlan: '40-days',
+          readingStartDate: today,
+          profilePicture: null,
+          streaks: 0,
+          totalVisits: 0
+        }));
+        // Removed facilitator logic(makeFacilitator);
+        return;
+      }
+
+      setUserData({
+        username: profile.username,
+        readingPlan: profile.reading_plan,
+        readingStartDate: profile.reading_start_date || null,
+        profilePicture: profile.profile_picture,
+        streaks: profile.current_streak,
+        totalVisits: profile.total_visits
+      });
+      // Removed facilitator logic(profile.is_facilitator);
+
+      // Auto-elevate facilitator for specific admin email
+      if ((user.email || '').toLowerCase() === 'admin@faithflow.org' && !profile.is_facilitator) {
+        try {
+          await userService.upsertUserProfile({
+            id: user.id,
+            email: user.email,
+            username: profile.username,
+            profile_picture: profile.profile_picture,
+            reading_plan: profile.reading_plan,
+            reading_start_date: profile.reading_start_date,
+            is_facilitator: true
+          });
+          // Removed facilitator logic(true);
+        } catch (e) {
+          console.error('Failed to auto-elevate facilitator:', e);
+        }
       }
     } catch (error) {
-      console.error('Error initializing app:', error);
-      setAppState('auth');
-    } finally {
-      setLoading(false);
+      console.error('Error loading user data for refresh:', error);
     }
   };
 
@@ -142,7 +245,7 @@ const AppLayout: React.FC = () => {
           streaks: 0,
           totalVisits: 0
         }));
-        setIsFacilitator(makeFacilitator);
+        // Removed facilitator logic(makeFacilitator);
         setAppState('onboarding');
         return;
       }
@@ -155,7 +258,7 @@ const AppLayout: React.FC = () => {
         streaks: profile.current_streak,
         totalVisits: profile.total_visits
       });
-      setIsFacilitator(profile.is_facilitator);
+      // Removed facilitator logic(profile.is_facilitator);
 
       // Auto-elevate facilitator for specific admin email
       if ((user.email || '').toLowerCase() === 'admin@faithflow.org' && !profile.is_facilitator) {
@@ -169,7 +272,7 @@ const AppLayout: React.FC = () => {
             reading_start_date: profile.reading_start_date,
             is_facilitator: true
           });
-          setIsFacilitator(true);
+          // Removed facilitator logic(true);
         } catch (e) {
           console.error('Failed to auto-elevate facilitator:', e);
         }
@@ -261,7 +364,7 @@ const AppLayout: React.FC = () => {
         });
         setJournalEntries([]);
         setCommunityEntries([]);
-        setIsFacilitator(false);
+        // Removed facilitator logic(false);
         setAppState('auth');
       }
     });
@@ -285,7 +388,7 @@ const AppLayout: React.FC = () => {
           reading_plan: data.readingPlan,
           // set start date if not already set
           reading_start_date: (userData as any).readingStartDate || new Date().toISOString().slice(0, 10),
-          is_facilitator: isFacilitator
+          is_facilitator: false
         });
         try { localStorage.removeItem('ff_signup_phone'); } catch {}
       } else {
@@ -298,12 +401,7 @@ const AppLayout: React.FC = () => {
     }
   };
 
-  const handleToggleFacilitator = (value: boolean) => {
-    setIsFacilitator(value);
-    try {
-      localStorage.setItem('ff_is_facilitator', value ? '1' : '0');
-    } catch {}
-  };
+  // Removed facilitator toggle function
 
   const handleSaveJournalEntry = async (entry: any) => {
     if (!currentUser) return;
@@ -413,7 +511,7 @@ const AppLayout: React.FC = () => {
   }
 
   if (appState === 'auth') {
-    return <AuthScreen onAuthComplete={handleAuthComplete} onFacilitatorLogin={() => setAppState('auth')} />;
+    return <AuthScreen onAuthComplete={handleAuthComplete} />;
   }
 
   // Facilitator login removed; use normal auth screen
@@ -477,8 +575,8 @@ const AppLayout: React.FC = () => {
           case 'announce':
             return (
               <div className="p-4 pb-28 max-w-xl mx-auto">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">New Announcement</h2>
-                <AnnouncementForm />
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Announcements</h2>
+                <p className="text-gray-600">Announcement feature removed for now.</p>
               </div>
             );
           default:
@@ -511,7 +609,7 @@ const AppLayout: React.FC = () => {
       <BottomNavigation 
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        showAnnouncements={isFacilitator}
+        showAnnouncements={false}
       />
 
       <ProfileModal 
@@ -524,8 +622,8 @@ const AppLayout: React.FC = () => {
         onUpdateProfilePicture={(picture) => setUserData(prev => ({ ...prev, profilePicture: picture }))}
         isDarkMode={isDarkMode}
         onThemeToggle={() => setIsDarkMode(!isDarkMode)}
-        isFacilitator={isFacilitator}
-        onToggleFacilitator={handleToggleFacilitator}
+        isFacilitator={false}
+        onToggleFacilitator={() => {}}
         journalEntries={journalEntries.length}
         communityPosts={communityEntries.filter(entry => entry.username === userData.username).length}
         totalLikes={communityEntries.reduce((total, entry) => total + entry.likes, 0)}
