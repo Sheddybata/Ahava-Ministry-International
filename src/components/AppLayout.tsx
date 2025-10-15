@@ -56,21 +56,8 @@ const AppLayout: React.FC = () => {
 
   const handleAuthComplete = async (isNewUser?: boolean) => {
     try {
-      // Ensure regular user sessions never have facilitator privileges
-      setIsFacilitator(false);
-      try { localStorage.setItem('ff_is_facilitator', '0'); } catch {}
-      
-      // Create user profile in database
-      if (currentUser) {
-        await userService.upsertUserProfile({
-          id: currentUser.id,
-          email: currentUser.email,
-          username: userData.username,
-          profile_picture: userData.profilePicture,
-          reading_plan: userData.readingPlan,
-          is_facilitator: false
-        });
-      }
+      // Do not override facilitator flag here; profile creation handled in loadUserData
+      // Persist user session (optional local hint only)
       
       // Persist user session
       try { localStorage.setItem('ff_user_session', '1'); } catch {}
