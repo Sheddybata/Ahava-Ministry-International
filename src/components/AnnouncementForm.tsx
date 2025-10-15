@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 
 const AnnouncementForm: React.FC = () => {
   const [title, setTitle] = useState('');
@@ -14,17 +13,9 @@ const AnnouncementForm: React.FC = () => {
     if (!canSend) return;
     setSending(true);
     try {
-      let accessToken: string | undefined = undefined;
-      try {
-        const { data } = await supabase.auth.getSession();
-        accessToken = data?.session?.access_token;
-      } catch {}
       const res = await fetch('/api/announcements', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, message, link })
       });
       if (!res.ok) throw new Error('Failed to send');

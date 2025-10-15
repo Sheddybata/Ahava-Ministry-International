@@ -56,8 +56,21 @@ const AppLayout: React.FC = () => {
 
   const handleAuthComplete = async (isNewUser?: boolean) => {
     try {
-      // Do not override facilitator flag here; profile creation handled in loadUserData
-      // Persist user session (optional local hint only)
+      // Ensure regular user sessions never have facilitator privileges
+      setIsFacilitator(false);
+      try { localStorage.setItem('ff_is_facilitator', '0'); } catch {}
+      
+      // Create user profile in database
+      if (currentUser) {
+        await userService.upsertUserProfile({
+          id: currentUser.id,
+          email: currentUser.email,
+          username: userData.username,
+          profile_picture: userData.profilePicture,
+          reading_plan: userData.readingPlan,
+          is_facilitator: false
+        });
+      }
       
       // Persist user session
       try { localStorage.setItem('ff_user_session', '1'); } catch {}
@@ -81,35 +94,17 @@ const AppLayout: React.FC = () => {
 
   const initializeApp = async () => {
     try {
-      // Attempt to restore session from localStorage proactively
-      try {
-        const raw = localStorage.getItem('ff-auth-v1');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const at = parsed?.access_token || parsed?.currentSession?.access_token;
-          const rt = parsed?.refresh_token || parsed?.currentSession?.refresh_token;
-          if (at && rt) {
-            try { await (supabase.auth as any).setSession({ access_token: at, refresh_token: rt }); } catch {}
-          }
-        }
-      } catch (_) {}
-
       // Check for existing session
       const session = await authService.getSession();
       
       if (session?.user) {
-        try {
-          await loadUserData(session.user);
-        } catch (e) {
-          console.error('loadUserData failed (continuing to main):', e);
-        }
+        await loadUserData(session.user);
         setAppState('main');
       } else {
         setAppState('auth');
       }
     } catch (error) {
       console.error('Error initializing app:', error);
-      // Do not bounce user if session exists but load failed
       setAppState('auth');
     } finally {
       setLoading(false);
@@ -252,11 +247,7 @@ const AppLayout: React.FC = () => {
   useEffect(() => {
     const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        try {
-          await loadUserData(session.user);
-        } catch (e) {
-          console.error('loadUserData failed after sign-in (continuing to main):', e);
-        }
+        await loadUserData(session.user);
         setAppState('main');
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
@@ -422,7 +413,7 @@ const AppLayout: React.FC = () => {
   }
 
   if (appState === 'auth') {
-    return <AuthScreen onAuthComplete={handleAuthComplete} />;
+    return <AuthScreen onAuthComplete={handleAuthComplete} onFacilitatorLogin={() => setAppState('auth')} />;
   }
 
   // Facilitator login removed; use normal auth screen

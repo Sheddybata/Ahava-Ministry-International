@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { authService } from '@/services/database';
-import { supabase } from '@/lib/supabaseClient';
 
 interface AuthScreenProps {
   onAuthComplete: (isNewUser?: boolean) => void;
@@ -18,83 +17,25 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
   const [forgotSubmitting, setForgotSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
-    ]) as T;
-  };
-
-  const withRetry = async <T,>(fn: () => Promise<T>, attempts = 2): Promise<T> => {
-    let lastError: any;
-    for (let i = 0; i < attempts; i++) {
-      try {
-        return await fn();
-      } catch (e) {
-        lastError = e;
-      }
-    }
-    throw lastError;
-  };
-
-  const waitForSession = async (timeoutMs = 1500): Promise<boolean> => {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      try {
-        const { data } = await supabase.auth.getSession();
-        const at = data?.session?.access_token;
-        if (at) return true;
-      } catch {}
-      await new Promise(r => setTimeout(r, 150));
-    }
-    return false;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    const timeout = setTimeout(() => {
+      setError('Taking longer than expected. Please check your connection and try again.');
+    }, 10000);
+
     try {
-      const sanitizedEmail = email.trim();
       if (isLogin) {
-        const signInResult: any = await withRetry(() => withTimeout(authService.signIn(sanitizedEmail, password), 12000));
-        // Ensure session is persisted before transitioning
-        const at = signInResult?.session?.access_token;
-        const rt = signInResult?.session?.refresh_token;
-        if (at && rt) {
-          try { await supabase.auth.setSession({ access_token: at, refresh_token: rt }); } catch {}
-        }
-        const ok = await waitForSession();
-        if (!ok) {
-          setError('Signed in but session is not ready. Please try again.');
-          return;
-        }
+        await authService.signIn(email, password);
         onAuthComplete(false);
-        if (import.meta.env.DEV) {
-          try { window.location.reload(); } catch {}
-        }
       } else {
-        const signUpResult: any = await withRetry(() => withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 12000));
-        const at = signUpResult?.session?.access_token;
-        const rt = signUpResult?.session?.refresh_token;
-        if (at && rt) {
-          try { await supabase.auth.setSession({ access_token: at, refresh_token: rt }); } catch {}
-        }
+        await authService.signUp(email, password, email.split('@')[0], phone);
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
-        const ok = await waitForSession();
-        if (!ok) {
-          setError('Account created but session is not ready. Please sign in.');
-          return;
-        }
         onAuthComplete(true);
-        if (import.meta.env.DEV) {
-          try { window.location.reload(); } catch {}
-        }
       }
     } catch (error: any) {
-      if (error?.message === 'Request timed out') {
-        setError('Taking longer than expected. Please check your connection and try again.');
-      } else if (error?.message?.includes('Invalid login credentials')) {
+      if (error?.message?.includes('Invalid login credentials')) {
         setError('Invalid credentials. Please check your email and password.');
       } else if (error?.message?.includes('User already registered')) {
         setError('An account with this email already exists. Please sign in instead.');
@@ -102,6 +43,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
         setError(error?.message || 'An error occurred. Please try again.');
       }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };

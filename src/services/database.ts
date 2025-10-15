@@ -378,7 +378,6 @@ export const authService = {
 
   // Sign out
   async signOut() {
-    try { localStorage.removeItem('ff-auth-v1'); } catch {}
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
