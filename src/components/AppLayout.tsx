@@ -81,17 +81,35 @@ const AppLayout: React.FC = () => {
 
   const initializeApp = async () => {
     try {
+      // Attempt to restore session from localStorage proactively
+      try {
+        const raw = localStorage.getItem('ff-auth-v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const at = parsed?.access_token || parsed?.currentSession?.access_token;
+          const rt = parsed?.refresh_token || parsed?.currentSession?.refresh_token;
+          if (at && rt) {
+            try { await (supabase.auth as any).setSession({ access_token: at, refresh_token: rt }); } catch {}
+          }
+        }
+      } catch (_) {}
+
       // Check for existing session
       const session = await authService.getSession();
       
       if (session?.user) {
-        await loadUserData(session.user);
+        try {
+          await loadUserData(session.user);
+        } catch (e) {
+          console.error('loadUserData failed (continuing to main):', e);
+        }
         setAppState('main');
       } else {
         setAppState('auth');
       }
     } catch (error) {
       console.error('Error initializing app:', error);
+      // Do not bounce user if session exists but load failed
       setAppState('auth');
     } finally {
       setLoading(false);
@@ -234,7 +252,11 @@ const AppLayout: React.FC = () => {
   useEffect(() => {
     const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        await loadUserData(session.user);
+        try {
+          await loadUserData(session.user);
+        } catch (e) {
+          console.error('loadUserData failed after sign-in (continuing to main):', e);
+        }
         setAppState('main');
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);

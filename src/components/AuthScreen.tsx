@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { authService } from '@/services/database';
+import { supabase } from '@/lib/supabaseClient';
 
 interface AuthScreenProps {
   onAuthComplete: (isNewUser?: boolean) => void;
@@ -43,16 +44,23 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
     try {
       const sanitizedEmail = email.trim();
       if (isLogin) {
-        await withRetry(() => withTimeout(authService.signIn(sanitizedEmail, password), 12000));
+        const signInResult: any = await withRetry(() => withTimeout(authService.signIn(sanitizedEmail, password), 12000));
+        // Ensure session is persisted before transitioning
+        const at = signInResult?.session?.access_token;
+        const rt = signInResult?.session?.refresh_token;
+        if (at && rt) {
+          try { await supabase.auth.setSession({ access_token: at, refresh_token: rt }); } catch {}
+        }
         onAuthComplete(false);
-        // Force a fresh reload so production always reflects the new session
-        try { window.location.replace('/'); } catch {}
       } else {
-        await withRetry(() => withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 12000));
+        const signUpResult: any = await withRetry(() => withTimeout(authService.signUp(sanitizedEmail, password, sanitizedEmail.split('@')[0], phone), 12000));
+        const at = signUpResult?.session?.access_token;
+        const rt = signUpResult?.session?.refresh_token;
+        if (at && rt) {
+          try { await supabase.auth.setSession({ access_token: at, refresh_token: rt }); } catch {}
+        }
         try { localStorage.setItem('ff_signup_phone', phone); } catch {}
         onAuthComplete(true);
-        // Force a fresh reload so production always reflects the new session
-        try { window.location.replace('/'); } catch {}
       }
     } catch (error: any) {
       if (error?.message === 'Request timed out') {
