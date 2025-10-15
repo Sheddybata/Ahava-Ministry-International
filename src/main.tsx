@@ -4,8 +4,8 @@ import App from './App.tsx'
 import './index.css'
 import { initializeNotifications } from './services/notifications'
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
+// Register service worker for PWA (opt-in via VITE_ENABLE_SW)
+if (import.meta.env.VITE_ENABLE_SW === 'true' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const version = Date.now().toString();
     navigator.serviceWorker.register(`/sw.js?v=${version}`)
