@@ -79,7 +79,7 @@ const AnnouncementForm: React.FC = () => {
         <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
           <p className="text-sm text-gray-500 mb-2">Preview</p>
           <div className="flex items-start space-x-3">
-            <img src="/FaithFlow logo.jpg" alt="logo" className="w-8 h-8 rounded" />
+            <img src="/faithflow-logo.jpg" alt="logo" className="w-8 h-8 rounded" />
             <div>
               <h4 className="font-semibold text-gray-800">{title || 'Title'}</h4>
               <p className="text-gray-700 whitespace-pre-wrap">{message || 'Message body...'}</p>

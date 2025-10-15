@@ -68,7 +68,7 @@ const FacilitatorLogin: React.FC<FacilitatorLoginProps> = ({ onLoginSuccess, onB
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
             <img 
-              src="/FaithFlow logo.jpg" 
+              src="/faithflow-logo.jpg" 
               alt="FaithFlow Logo" 
               className="w-full h-full object-cover rounded-full"
             />

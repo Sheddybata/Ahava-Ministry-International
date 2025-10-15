@@ -86,7 +86,7 @@ const ResetPassword: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <div className="text-center mb-8">
-            <img src="/FaithFlow logo.jpg" alt="FaithFlow Logo" className="w-24 h-24 mx-auto mb-4 rounded-full" />
+            <img src="/faithflow-logo.jpg" alt="FaithFlow Logo" className="w-24 h-24 mx-auto mb-4 rounded-full" />
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Reset Password</h2>
             <p className="text-sm text-gray-500">Enter a new password for your account.</p>
           </div>

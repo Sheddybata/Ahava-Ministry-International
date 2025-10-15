@@ -63,7 +63,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
             <div className="text-center">
               <div className="mb-8">
                 <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg overflow-hidden bg-white">
-                  <img src="/FaithFlow logo.jpg" alt="FaithFlow Logo" className="w-full h-full object-cover" />
+                  <img src="/faithflow-logo.jpg" alt="FaithFlow Logo" className="w-full h-full object-cover" />
                 </div>
                 <h2 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent mb-4">
                   Welcome to FaithFlow!

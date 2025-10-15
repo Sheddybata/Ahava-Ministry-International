@@ -154,7 +154,7 @@ const JournalSuccessModal: React.FC<JournalSuccessModalProps> = ({ isOpen, onClo
           >
             <div className="text-center mb-6">
               <img 
-                src="/FaithFlow logo.jpg" 
+                src="/faithflow-logo.jpg" 
                 alt="FaithFlow Logo" 
                 className="w-16 h-16 mx-auto mb-3 rounded-full"
               />
