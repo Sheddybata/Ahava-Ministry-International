@@ -298,16 +298,22 @@ const AppLayout: React.FC = () => {
           // Add timeout to prevent hanging
           const communityDataPromise = communityService.getCommunityPosts();
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Community data loading timeout')), 5000)
+            setTimeout(() => reject(new Error('Community data loading timeout')), 10000)
           );
           
+          console.log('🔄 Starting community data fetch...');
           const communityData = await Promise.race([communityDataPromise, timeoutPromise]);
-          console.log('📋 Raw community data:', communityData);
+          console.log('📋 Raw community data received:', communityData);
           console.log('📋 Community data length:', communityData?.length || 0);
+          
           if (communityData && communityData.length > 0) {
             console.log('📋 First community post structure:', communityData[0]);
             console.log('📋 First post type:', communityData[0]?.post_type);
+            console.log('📋 First post ID:', communityData[0]?.id);
+          } else {
+            console.log('⚠️ No community data received or empty array');
           }
+          
           const mappedCommunity = (communityData || []).map((row: any) => ({
             ...row,
             type: row.post_type, // Map post_type to type for filtering
@@ -321,10 +327,13 @@ const AppLayout: React.FC = () => {
           if (mappedCommunity && mappedCommunity.length > 0) {
             console.log('📋 First mapped post:', mappedCommunity[0]);
             console.log('📋 First mapped post type:', mappedCommunity[0]?.type);
+            console.log('📋 First mapped post ID:', mappedCommunity[0]?.id);
           }
           setCommunityEntries(mappedCommunity);
+          console.log('✅ Community entries set in state');
         } catch (error) {
           console.error('💥 Error loading community data:', error);
+          console.error('💥 Error details:', error);
           setCommunityEntries([]);
         }
       }

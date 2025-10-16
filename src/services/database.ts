@@ -170,6 +170,8 @@ export const communityService = {
   // Get all community posts
   async getCommunityPosts(postType?: 'insight' | 'prayer' | 'testimony') {
     console.log('🔍 getCommunityPosts called with postType:', postType);
+    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
     
     try {
       // Retry logic for better reliability on Vercel
@@ -194,10 +196,17 @@ export const communityService = {
             query = query.eq('post_type', postType);
           }
 
+          console.log('🔍 Executing community posts query...');
           const { data, error } = await query;
           
           if (error) {
             console.error(`💥 Attempt ${attempts + 1} failed:`, error);
+            console.error('💥 Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
             if (attempts === maxAttempts - 1) throw error;
             attempts++;
             await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
@@ -205,6 +214,11 @@ export const communityService = {
           }
           
           console.log('✅ Community posts fetched successfully:', data);
+          console.log('✅ Number of posts fetched:', data?.length || 0);
+          if (data && data.length > 0) {
+            console.log('✅ First post ID:', data[0]?.id);
+            console.log('✅ First post username:', data[0]?.username);
+          }
           return data;
         } catch (error) {
           console.error(`💥 Attempt ${attempts + 1} error:`, error);
