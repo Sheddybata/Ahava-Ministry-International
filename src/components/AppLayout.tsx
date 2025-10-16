@@ -42,6 +42,15 @@ const AppLayout: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    console.log(logMessage);
+    setDebugInfo(prev => [...prev.slice(-9), logMessage]); // Keep last 10 messages
+  };
 
   useEffect(() => {
     // Increment total visits when entering main
@@ -286,14 +295,13 @@ const AppLayout: React.FC = () => {
       setJournalEntries(journalData);
       
       // Test Supabase connection first
-      console.log('🔍 Testing Supabase connection...');
+      addDebugLog('🔍 Testing Supabase connection...');
       const connectionOk = await testSupabaseConnection();
       if (!connectionOk) {
-        console.error('💥 Supabase connection failed, skipping community data');
+        addDebugLog('💥 Supabase connection failed, skipping community data');
         setCommunityEntries([]);
       } else {
-        console.log('✅ Supabase connection test passed, loading community data...');
-        console.log('🔄 Loading community data...');
+        addDebugLog('✅ Supabase connection test passed, loading community data...');
         try {
           // Add timeout to prevent hanging
           const communityDataPromise = communityService.getCommunityPosts();
@@ -301,17 +309,15 @@ const AppLayout: React.FC = () => {
             setTimeout(() => reject(new Error('Community data loading timeout')), 10000)
           );
           
-          console.log('🔄 Starting community data fetch...');
+          addDebugLog('🔄 Starting community data fetch...');
           const communityData = await Promise.race([communityDataPromise, timeoutPromise]);
-          console.log('📋 Raw community data received:', communityData);
-          console.log('📋 Community data length:', communityData?.length || 0);
+          addDebugLog(`📋 Raw community data received: ${communityData?.length || 0} posts`);
           
           if (communityData && communityData.length > 0) {
-            console.log('📋 First community post structure:', communityData[0]);
-            console.log('📋 First post type:', communityData[0]?.post_type);
-            console.log('📋 First post ID:', communityData[0]?.id);
+            addDebugLog(`📋 First post ID: ${communityData[0]?.id}`);
+            addDebugLog(`📋 First post type: ${communityData[0]?.post_type}`);
           } else {
-            console.log('⚠️ No community data received or empty array');
+            addDebugLog('⚠️ No community data received or empty array');
           }
           
           const mappedCommunity = (communityData || []).map((row: any) => ({
@@ -322,18 +328,14 @@ const AppLayout: React.FC = () => {
             likedBy: row.post_likes?.map((like: any) => like.user_id) || [], // Map post_likes to likedBy array
             likes: row.post_likes?.length || 0, // Count of likes
           }));
-          console.log('📋 Mapped community data:', mappedCommunity);
-          console.log('📋 Mapped data length:', mappedCommunity?.length || 0);
+          addDebugLog(`📋 Mapped community data: ${mappedCommunity?.length || 0} posts`);
           if (mappedCommunity && mappedCommunity.length > 0) {
-            console.log('📋 First mapped post:', mappedCommunity[0]);
-            console.log('📋 First mapped post type:', mappedCommunity[0]?.type);
-            console.log('📋 First mapped post ID:', mappedCommunity[0]?.id);
+            addDebugLog(`📋 First mapped post ID: ${mappedCommunity[0]?.id}`);
           }
           setCommunityEntries(mappedCommunity);
-          console.log('✅ Community entries set in state');
+          addDebugLog('✅ Community entries set in state');
         } catch (error) {
-          console.error('💥 Error loading community data:', error);
-          console.error('💥 Error details:', error);
+          addDebugLog(`💥 Error loading community data: ${error}`);
           setCommunityEntries([]);
         }
       }
@@ -926,6 +928,9 @@ const AppLayout: React.FC = () => {
                 onAddTestimony={handleAddTestimony}
                 currentUserId={currentUser?.id || 'local-user'}
                 currentUserProfilePicture={userData.profilePicture || ''}
+                debugInfo={debugInfo}
+                showDebug={showDebug}
+                onToggleDebug={() => setShowDebug(!showDebug)}
               />
             );
           case 'announce':
