@@ -228,6 +228,7 @@ const AppLayout: React.FC = () => {
 
   const loadUserData = async (user: any) => {
     console.log('🔄 loadUserData called with user:', user);
+    addDebugLog('🔄 Starting user data load...');
     try {
       setCurrentUser(user);
       let profile: any | null = null;
@@ -306,7 +307,7 @@ const AppLayout: React.FC = () => {
           // Add timeout to prevent hanging
           const communityDataPromise = communityService.getCommunityPosts();
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Community data loading timeout')), 10000)
+            setTimeout(() => reject(new Error('Community data loading timeout')), 30000)
           );
           
           addDebugLog('🔄 Starting community data fetch...');

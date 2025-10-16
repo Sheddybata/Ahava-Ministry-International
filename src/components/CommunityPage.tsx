@@ -142,28 +142,26 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
         </div>
       </div>
 
-      {/* Debug Panel */}
-      {onToggleDebug && (
-        <div className="bg-gray-100 border-b border-gray-200 px-4 py-2">
-          <button
-            onClick={onToggleDebug}
-            className="text-xs text-gray-600 hover:text-gray-800"
-          >
-            {showDebug ? '🔽 Hide Debug' : '🔼 Show Debug'} ({debugInfo.length} logs)
-          </button>
-          {showDebug && (
-            <div className="mt-2 bg-black text-green-400 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
-              {debugInfo.length === 0 ? (
-                <div>No debug logs yet...</div>
-              ) : (
-                debugInfo.map((log, index) => (
-                  <div key={index} className="mb-1">{log}</div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Debug Panel - Always visible on mobile */}
+      <div className="bg-gray-100 border-b border-gray-200 px-4 py-2">
+        <button
+          onClick={onToggleDebug || (() => {})}
+          className="text-xs text-gray-600 hover:text-gray-800"
+        >
+          {showDebug ? '🔽 Hide Debug' : '🔼 Show Debug'} ({debugInfo.length} logs)
+        </button>
+        {showDebug && (
+          <div className="mt-2 bg-black text-green-400 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
+            {debugInfo.length === 0 ? (
+              <div>No debug logs yet... Try refreshing the page or creating a journal entry.</div>
+            ) : (
+              debugInfo.map((log, index) => (
+                <div key={index} className="mb-1">{log}</div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Submission Buttons */}
       <div className="bg-white border-b border-gray-200 px-4 py-3">

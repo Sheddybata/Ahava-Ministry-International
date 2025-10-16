@@ -97,7 +97,7 @@ export const journalService = {
         .single();
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Journal entry creation timeout')), 5000)
+        setTimeout(() => reject(new Error('Journal entry creation timeout')), 30000)
       );
       
       console.log('🔍 Executing journal entry insert...');
