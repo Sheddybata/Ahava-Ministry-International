@@ -148,13 +148,61 @@ export const journalService = {
   }
 };
 
+// Wake up Supabase (free tier projects sleep after inactivity)
+export const wakeUpSupabase = async () => {
+  try {
+    console.log('🔄 Attempting to wake up Supabase...');
+    // Try a simple query to wake up the project
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1);
+    
+    if (error) {
+      console.log('💤 Supabase appears to be sleeping, trying to wake up...');
+      // Wait a bit and try again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data: retryData, error: retryError } = await supabase
+        .from('users')
+        .select('id')
+        .limit(1);
+      
+      if (retryError) {
+        console.error('💥 Failed to wake up Supabase:', retryError);
+        return false;
+      }
+    }
+    console.log('✅ Supabase is awake and ready');
+    return true;
+  } catch (error) {
+    console.error('💥 Error waking up Supabase:', error);
+    return false;
+  }
+};
+
 // Test Supabase connection
 export const testSupabaseConnection = async () => {
   try {
     console.log('🔍 Testing Supabase connection...');
+    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+    
+    // First try to wake up Supabase
+    const isAwake = await wakeUpSupabase();
+    if (!isAwake) {
+      console.error('💥 Supabase failed to wake up');
+      return false;
+    }
+    
     const { data, error } = await supabase.from('users').select('count').limit(1);
     if (error) {
       console.error('💥 Supabase connection test failed:', error);
+      console.error('💥 Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return false;
     }
     console.log('✅ Supabase connection test successful');
