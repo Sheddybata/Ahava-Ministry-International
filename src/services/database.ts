@@ -235,8 +235,23 @@ export const communityService = {
     prayer?: string;
   }) {
     console.log('🌐 Creating community post with data:', post);
+    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
     
     try {
+      // Test connection first
+      console.log('🔍 Testing Supabase connection...');
+      const { data: testData, error: testError } = await supabase
+        .from('community_posts')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('💥 Supabase connection test failed:', testError);
+        throw new Error(`Connection test failed: ${testError.message}`);
+      }
+      console.log('✅ Supabase connection test passed');
+      
       // Retry logic for better reliability on Vercel
       let attempts = 0;
       const maxAttempts = 3;
@@ -253,6 +268,12 @@ export const communityService = {
           
           if (error) {
             console.error(`💥 Attempt ${attempts + 1} failed:`, error);
+            console.error('💥 Error details:', {
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
             if (attempts === maxAttempts - 1) throw error;
             attempts++;
             await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff

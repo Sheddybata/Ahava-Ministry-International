@@ -496,26 +496,7 @@ const AppLayout: React.FC = () => {
       console.log('🔍 Checking if should share to community:', entry.shareToCommunity);
       if (entry.shareToCommunity) {
         console.log('🌐 Creating community post for journal entry...');
-      console.log('🌐 Community post data:', {
-        user_id: currentUser.id,
-        username: userData.username,
-        avatar: userData.profilePicture,
-        day: entry.day,
-        content: entry.content,
-        post_type: 'insight',
-        insight: entry.insight,
-        attention: entry.attention,
-        commitment: entry.commitment,
-        task: entry.task,
-        system: entry.system,
-        prayer: entry.prayer
-      });
-      console.log('🌐 User data available:', {
-        username: userData.username,
-        profilePicture: userData.profilePicture
-      });
-        
-        const communityPost = await communityService.createCommunityPost({
+        console.log('🌐 Community post data:', {
           user_id: currentUser.id,
           username: userData.username,
           avatar: userData.profilePicture,
@@ -529,24 +510,48 @@ const AppLayout: React.FC = () => {
           system: entry.system,
           prayer: entry.prayer
         });
+        console.log('🌐 User data available:', {
+          username: userData.username,
+          profilePicture: userData.profilePicture
+        });
         
-        console.log('✅ Community post created:', communityPost);
-        
-        // Add to local state immediately with type mapping
-        const mappedPost = {
-          ...communityPost,
-          type: communityPost.post_type, // Map post_type to type
-          is_facilitator: false // Default for new posts
-        };
-        console.log('📋 Mapped post to add:', mappedPost);
-        setCommunityEntries(prev => {
-          const updated = [mappedPost, ...prev];
-        console.log('📋 Updated community entries:', updated);
-        return updated;
-      });
-      console.log('📋 Community entries updated with mapped post');
-    } else {
-      console.log('❌ Not sharing to community');
+        try {
+          const communityPost = await communityService.createCommunityPost({
+            user_id: currentUser.id,
+            username: userData.username,
+            avatar: userData.profilePicture,
+            day: entry.day,
+            content: entry.content,
+            post_type: 'insight',
+            insight: entry.insight,
+            attention: entry.attention,
+            commitment: entry.commitment,
+            task: entry.task,
+            system: entry.system,
+            prayer: entry.prayer
+          });
+          
+          console.log('✅ Community post created successfully:', communityPost);
+          
+          // Add to local state immediately with type mapping
+          const mappedPost = {
+            ...communityPost,
+            type: communityPost.post_type, // Map post_type to type
+            is_facilitator: false // Default for new posts
+          };
+          console.log('📋 Mapped post to add:', mappedPost);
+          setCommunityEntries(prev => {
+            const updated = [mappedPost, ...prev];
+            console.log('📋 Updated community entries:', updated);
+            return updated;
+          });
+          console.log('📋 Community entries updated with mapped post');
+        } catch (communityError) {
+          console.error('💥 Failed to create community post:', communityError);
+          // Don't throw here, let the journal entry still be saved
+        }
+      } else {
+        console.log('❌ Not sharing to community');
       }
     } catch (error) {
     console.error('💥 Error saving journal entry:', error);
