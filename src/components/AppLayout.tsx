@@ -18,7 +18,8 @@ import {
   communityService, 
   announcementService,
   realtimeService,
-  authService
+  authService,
+  testSupabaseConnection
 } from '@/services/database';
 
 const AppLayout: React.FC = () => {
@@ -67,6 +68,7 @@ const AppLayout: React.FC = () => {
       try { 
         localStorage.setItem('ff_user_session', '1'); 
         localStorage.setItem('ff_user_email', user?.email || ''); 
+        localStorage.setItem('ff_user_id', user?.id || ''); // Store the real user ID
         console.log('💾 Session stored in localStorage');
       } catch (e) {
         console.error('❌ Failed to store session:', e);
@@ -113,7 +115,8 @@ const AppLayout: React.FC = () => {
         } catch (timeoutError) {
           console.log('⏰ Session check timeout, using stored session');
           // Create a minimal user object from stored data
-          setCurrentUser({ email: storedEmail, id: 'local-user' });
+          const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
+          setCurrentUser({ email: storedEmail, id: storedUserId });
           setUserData(prev => ({
             ...prev,
             username: storedEmail.split('@')[0],
@@ -215,6 +218,7 @@ const AppLayout: React.FC = () => {
   };
 
   const loadUserData = async (user: any) => {
+    console.log('🔄 loadUserData called with user:', user);
     try {
       setCurrentUser(user);
       let profile: any | null = null;
@@ -280,13 +284,50 @@ const AppLayout: React.FC = () => {
 
       const journalData = await journalService.getUserJournalEntries(user.id);
       setJournalEntries(journalData);
-
-      const communityData = await communityService.getCommunityPosts();
-      const mappedCommunity = (communityData || []).map((row: any) => ({
-        ...row,
-        is_facilitator: row?.users?.is_facilitator ?? false,
-      }));
-      setCommunityEntries(mappedCommunity);
+      
+      // Test Supabase connection first
+      console.log('🔍 Testing Supabase connection...');
+      const connectionOk = await testSupabaseConnection();
+      if (!connectionOk) {
+        console.error('💥 Supabase connection failed, skipping community data');
+        setCommunityEntries([]);
+      } else {
+        console.log('✅ Supabase connection test passed, loading community data...');
+        console.log('🔄 Loading community data...');
+        try {
+          // Add timeout to prevent hanging
+          const communityDataPromise = communityService.getCommunityPosts();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Community data loading timeout')), 5000)
+          );
+          
+          const communityData = await Promise.race([communityDataPromise, timeoutPromise]);
+          console.log('📋 Raw community data:', communityData);
+          console.log('📋 Community data length:', communityData?.length || 0);
+          if (communityData && communityData.length > 0) {
+            console.log('📋 First community post structure:', communityData[0]);
+            console.log('📋 First post type:', communityData[0]?.post_type);
+          }
+          const mappedCommunity = (communityData || []).map((row: any) => ({
+            ...row,
+            type: row.post_type, // Map post_type to type for filtering
+            is_facilitator: row?.users?.is_facilitator ?? false,
+            comments: row.post_comments || [], // Map post_comments to comments
+            likedBy: row.post_likes?.map((like: any) => like.user_id) || [], // Map post_likes to likedBy array
+            likes: row.post_likes?.length || 0, // Count of likes
+          }));
+          console.log('📋 Mapped community data:', mappedCommunity);
+          console.log('📋 Mapped data length:', mappedCommunity?.length || 0);
+          if (mappedCommunity && mappedCommunity.length > 0) {
+            console.log('📋 First mapped post:', mappedCommunity[0]);
+            console.log('📋 First mapped post type:', mappedCommunity[0]?.type);
+          }
+          setCommunityEntries(mappedCommunity);
+        } catch (error) {
+          console.error('💥 Error loading community data:', error);
+          setCommunityEntries([]);
+        }
+      }
 
       setupRealtimeSubscriptions();
       
@@ -298,11 +339,22 @@ const AppLayout: React.FC = () => {
   const setupRealtimeSubscriptions = () => {
     // Subscribe to community posts changes
     realtimeService.subscribeToCommunityPosts((payload) => {
+      console.log('🔄 Realtime community post update:', payload);
       if (payload.eventType === 'INSERT') {
-        setCommunityEntries(prev => [payload.new, ...prev]);
+        const mappedNew = {
+          ...payload.new,
+          type: payload.new.post_type, // Map post_type to type
+          is_facilitator: false
+        };
+        setCommunityEntries(prev => [mappedNew, ...prev]);
       } else if (payload.eventType === 'UPDATE') {
+        const mappedUpdated = {
+          ...payload.new,
+          type: payload.new.post_type, // Map post_type to type
+          is_facilitator: false
+        };
         setCommunityEntries(prev => 
-          prev.map(entry => entry.id === payload.new.id ? payload.new : entry)
+          prev.map(entry => entry.id === payload.new.id ? mappedUpdated : entry)
         );
       } else if (payload.eventType === 'DELETE') {
         setCommunityEntries(prev => 
@@ -404,9 +456,22 @@ const AppLayout: React.FC = () => {
   // Removed facilitator toggle function
 
   const handleSaveJournalEntry = async (entry: any) => {
-    if (!currentUser) return;
+    console.log('📝 handleSaveJournalEntry called with:', entry);
+    
+    if (!currentUser) {
+      console.error('❌ No current user for journal entry');
+      return;
+    }
+    
+    console.log('📝 Current user:', currentUser);
+    console.log('📝 User data:', userData);
     
     try {
+      console.log('📝 Saving journal entry:', entry);
+      console.log('🔍 Share to community:', entry.shareToCommunity);
+      console.log('👤 Current user ID:', currentUser.id);
+      console.log('👤 Current user email:', currentUser.email);
+      
       // Save to database
       const savedEntry = await journalService.createJournalEntry({
         user_id: currentUser.id,
@@ -421,12 +486,36 @@ const AppLayout: React.FC = () => {
         prayer: entry.prayer
       });
       
+      console.log('✅ Journal entry saved:', savedEntry);
+      
       // Update local state
       setJournalEntries(prev => [savedEntry, ...prev]);
+      console.log('📝 Journal entries updated in local state');
       
       // Create community post if sharing
+      console.log('🔍 Checking if should share to community:', entry.shareToCommunity);
       if (entry.shareToCommunity) {
-        await communityService.createCommunityPost({
+        console.log('🌐 Creating community post for journal entry...');
+      console.log('🌐 Community post data:', {
+        user_id: currentUser.id,
+        username: userData.username,
+        avatar: userData.profilePicture,
+        day: entry.day,
+        content: entry.content,
+        post_type: 'insight',
+        insight: entry.insight,
+        attention: entry.attention,
+        commitment: entry.commitment,
+        task: entry.task,
+        system: entry.system,
+        prayer: entry.prayer
+      });
+      console.log('🌐 User data available:', {
+        username: userData.username,
+        profilePicture: userData.profilePicture
+      });
+        
+        const communityPost = await communityService.createCommunityPost({
           user_id: currentUser.id,
           username: userData.username,
           avatar: userData.profilePicture,
@@ -440,69 +529,321 @@ const AppLayout: React.FC = () => {
           system: entry.system,
           prayer: entry.prayer
         });
+        
+        console.log('✅ Community post created:', communityPost);
+        
+        // Add to local state immediately with type mapping
+        const mappedPost = {
+          ...communityPost,
+          type: communityPost.post_type, // Map post_type to type
+          is_facilitator: false // Default for new posts
+        };
+        console.log('📋 Mapped post to add:', mappedPost);
+        setCommunityEntries(prev => {
+          const updated = [mappedPost, ...prev];
+        console.log('📋 Updated community entries:', updated);
+        return updated;
+      });
+      console.log('📋 Community entries updated with mapped post');
+    } else {
+      console.log('❌ Not sharing to community');
       }
     } catch (error) {
-      console.error('Error saving journal entry:', error);
+    console.error('💥 Error saving journal entry:', error);
+    
+    // Add fallback journal entry to local state
+    console.log('🔄 Adding journal entry as fallback...');
+    const fallbackJournalEntry = {
+      id: `temp-${Date.now()}`,
+      user_id: currentUser.id,
+      day: entry.day,
+      title: entry.title,
+      content: entry.content,
+      insight: entry.insight,
+      attention: entry.attention,
+      commitment: entry.commitment,
+      task: entry.task,
+      system: entry.system,
+      prayer: entry.prayer,
+      created_at: new Date().toISOString()
+    };
+    setJournalEntries(prev => [fallbackJournalEntry, ...prev]);
+    console.log('✅ Journal entry added to local state as fallback');
+    
+    // If community post creation failed, add fallback
+    if (entry.shareToCommunity) {
+      console.log('🔄 Adding community post as fallback...');
+      const fallbackPost = {
+        id: `temp-${Date.now()}`,
+        user_id: currentUser.id,
+        username: userData.username,
+        avatar: userData.profilePicture,
+        day: entry.day,
+        content: entry.content,
+        post_type: 'insight',
+        type: 'insight',
+        insight: entry.insight,
+        attention: entry.attention,
+        commitment: entry.commitment,
+        task: entry.task,
+        system: entry.system,
+        prayer: entry.prayer,
+        created_at: new Date().toISOString(),
+        is_facilitator: false,
+        likes: 0,
+        likedBy: [],
+        comments: [],
+        isTemporary: true // Mark as temporary for UI indication
+      };
+      setCommunityEntries(prev => [fallbackPost, ...prev]);
+      console.log('✅ Journal entry added to community as fallback');
+      console.log('⚠️ WARNING: This is a temporary post that will only be visible to you until the database connection is restored.');
+    }
     }
   };
 
   const handleAddComment = async (entryId: string, comment: string) => {
-    if (!currentUser) return;
+    console.log('💬 handleAddComment called with:', { entryId, comment });
+    
+    if (!currentUser) {
+      console.error('❌ No current user for comment');
+      return;
+    }
+    
+    console.log('💬 Current user:', currentUser);
+    console.log('💬 User data:', userData);
+    
+    // Check if this is a temporary post (fallback post)
+    if (entryId.startsWith('temp-')) {
+      console.log('🔄 This is a temporary post, adding comment to local state only');
+      const newComment = {
+        id: `comment-${Date.now()}`,
+        username: userData.username,
+        avatar: userData.profilePicture || '',
+        content: comment,
+        date: new Date().toISOString()
+      };
+      
+      setCommunityEntries(prev => prev.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            comments: [...(entry.comments || []), newComment]
+          };
+        }
+        return entry;
+      }));
+      console.log('✅ Comment added to local state for temporary post');
+      return;
+    }
     
     try {
-      await communityService.addComment(
+      console.log('💬 Adding comment to database...');
+      const result = await communityService.addComment(
         entryId,
         currentUser.id,
         userData.username,
         userData.profilePicture || '',
         comment
       );
+      console.log('✅ Comment added successfully:', result);
+      
+      // Update local state to reflect the new comment
+      const newComment = {
+        id: result.id,
+        username: userData.username,
+        avatar: userData.profilePicture || '',
+        content: comment,
+        date: result.created_at
+      };
+      
+      setCommunityEntries(prev => prev.map(entry => {
+        if (entry.id === entryId) {
+          return {
+            ...entry,
+            comments: [...(entry.comments || []), newComment]
+          };
+        }
+        return entry;
+      }));
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error('💥 Error adding comment:', error);
     }
   };
 
   const handleLikeEntry = async (entryId: string) => {
-    if (!currentUser) return;
+    console.log('❤️ handleLikeEntry called with entryId:', entryId);
+    
+    if (!currentUser) {
+      console.error('❌ No current user for like');
+      return;
+    }
+    
+    console.log('❤️ Current user:', currentUser);
+    
+    // Check if this is a temporary post (fallback post)
+    if (entryId.startsWith('temp-')) {
+      console.log('🔄 This is a temporary post, updating local state only');
+      setCommunityEntries(prev => prev.map(entry => {
+        if (entry.id === entryId) {
+          const isLiked = entry.likedBy?.includes(currentUser.id) || false;
+          const newLikedBy = isLiked 
+            ? entry.likedBy?.filter(id => id !== currentUser.id) || []
+            : [...(entry.likedBy || []), currentUser.id];
+          
+          return {
+            ...entry,
+            likedBy: newLikedBy,
+            likes: newLikedBy.length
+          };
+        }
+        return entry;
+      }));
+      console.log('✅ Like toggled in local state for temporary post');
+      return;
+    }
     
     try {
-      await communityService.togglePostLike(entryId, currentUser.id);
+      console.log('❤️ Toggling like in database...');
+      const result = await communityService.togglePostLike(entryId, currentUser.id);
+      console.log('✅ Like toggled successfully:', result);
+      
+      // Update local state to reflect the change
+      setCommunityEntries(prev => prev.map(entry => {
+        if (entry.id === entryId) {
+          const isLiked = entry.likedBy?.includes(currentUser.id) || false;
+          const newLikedBy = result.liked 
+            ? [...(entry.likedBy || []), currentUser.id]
+            : entry.likedBy?.filter(id => id !== currentUser.id) || [];
+          
+          return {
+            ...entry,
+            likedBy: newLikedBy,
+            likes: newLikedBy.length
+          };
+        }
+        return entry;
+      }));
     } catch (error) {
-      console.error('Error toggling like:', error);
+      console.error('💥 Error toggling like:', error);
     }
   };
 
   const handleAddPrayerRequest = async (prayerRequest: { title: string; content: string; isAnonymous: boolean }) => {
-    if (!currentUser) return;
+    console.log('🙏 handleAddPrayerRequest called with:', prayerRequest);
+    
+    if (!currentUser) {
+      console.error('❌ No current user for prayer request');
+      return;
+    }
+    
+    console.log('🙏 Current user:', currentUser);
+    console.log('🙏 User data:', userData);
     
     try {
-      await communityService.createCommunityPost({
+      console.log('🙏 Creating prayer request...');
+      console.log('🙏 Prayer request data:', prayerRequest);
+      console.log('🙏 User data:', {
+        id: currentUser.id,
+        username: userData.username,
+        profilePicture: userData.profilePicture
+      });
+      const communityPost = await communityService.createCommunityPost({
         user_id: currentUser.id,
         username: prayerRequest.isAnonymous ? 'Anonymous' : userData.username,
         avatar: prayerRequest.isAnonymous ? null : userData.profilePicture,
-        day: 0,
+        day: 1, // Use 1 instead of 0 for prayer requests
         content: `${prayerRequest.title}\n\n${prayerRequest.content}`,
         post_type: 'prayer'
       });
+      
+      // Add to local state immediately
+      const mappedPost = {
+        ...communityPost,
+        type: communityPost.post_type,
+        is_facilitator: false
+      };
+      setCommunityEntries(prev => [mappedPost, ...prev]);
+      console.log('✅ Prayer request added to local state');
     } catch (error) {
-      console.error('Error adding prayer request:', error);
+      console.error('💥 Error adding prayer request:', error);
+      // Fallback: add to local state even if database fails
+      const fallbackPost = {
+        id: `temp-${Date.now()}`,
+        user_id: currentUser.id,
+        username: prayerRequest.isAnonymous ? 'Anonymous' : userData.username,
+        avatar: prayerRequest.isAnonymous ? null : userData.profilePicture,
+        day: 1,
+        content: `${prayerRequest.title}\n\n${prayerRequest.content}`,
+        post_type: 'prayer',
+        type: 'prayer',
+        created_at: new Date().toISOString(),
+        is_facilitator: false,
+        likes: 0,
+        likedBy: [],
+        comments: []
+      };
+      setCommunityEntries(prev => [fallbackPost, ...prev]);
+      console.log('✅ Prayer request added as fallback');
     }
   };
 
   const handleAddTestimony = async (testimony: { title: string; content: string; isAnonymous: boolean }) => {
-    if (!currentUser) return;
+    console.log('✨ handleAddTestimony called with:', testimony);
+    
+    if (!currentUser) {
+      console.error('❌ No current user for testimony');
+      return;
+    }
+    
+    console.log('✨ Current user:', currentUser);
+    console.log('✨ User data:', userData);
     
     try {
-      await communityService.createCommunityPost({
+      console.log('✨ Creating testimony...');
+      console.log('✨ Testimony data:', testimony);
+      console.log('✨ User data:', {
+        id: currentUser.id,
+        username: userData.username,
+        profilePicture: userData.profilePicture
+      });
+      const communityPost = await communityService.createCommunityPost({
         user_id: currentUser.id,
         username: testimony.isAnonymous ? 'Anonymous' : userData.username,
         avatar: testimony.isAnonymous ? null : userData.profilePicture,
-        day: 0,
+        day: 1, // Use 1 instead of 0 for testimonies
         content: `${testimony.title}\n\n${testimony.content}`,
         post_type: 'testimony'
       });
+      
+      // Add to local state immediately
+      const mappedPost = {
+        ...communityPost,
+        type: communityPost.post_type,
+        is_facilitator: false
+      };
+      setCommunityEntries(prev => [mappedPost, ...prev]);
+      console.log('✅ Testimony added to local state');
     } catch (error) {
-      console.error('Error adding testimony:', error);
+      console.error('💥 Error adding testimony:', error);
+      // Fallback: add to local state even if database fails
+      const fallbackPost = {
+        id: `temp-${Date.now()}`,
+        user_id: currentUser.id,
+        username: testimony.isAnonymous ? 'Anonymous' : userData.username,
+        avatar: testimony.isAnonymous ? null : userData.profilePicture,
+        day: 1,
+        content: `${testimony.title}\n\n${testimony.content}`,
+        post_type: 'testimony',
+        type: 'testimony',
+        created_at: new Date().toISOString(),
+        is_facilitator: false,
+        likes: 0,
+        likedBy: [],
+        comments: []
+      };
+      setCommunityEntries(prev => [fallbackPost, ...prev]);
+      console.log('✅ Testimony added as fallback');
     }
   };
 
@@ -533,14 +874,14 @@ const AppLayout: React.FC = () => {
                 const diff = Math.floor((today.setHours(0,0,0,0) as any - start.setHours(0,0,0,0) as any) / msPerDay);
                 return Math.max(1, diff + 1);
               })();
-              return (
-                <HomePage
-                  streaks={userData.streaks}
-                  totalVisits={userData.totalVisits}
-                  readingPlan={userData.readingPlan}
+            return (
+              <HomePage
+                streaks={userData.streaks}
+                totalVisits={userData.totalVisits}
+                readingPlan={userData.readingPlan}
                   currentDay={currentDay}
-                />
-              );
+              />
+            );
             }
           case 'journal':
             {
@@ -552,12 +893,12 @@ const AppLayout: React.FC = () => {
                 const diff = Math.floor((today.setHours(0,0,0,0) as any - start.setHours(0,0,0,0) as any) / msPerDay);
                 return Math.max(1, diff + 1);
               })();
-              return (
-                <JournalPage
+            return (
+              <JournalPage
                   currentDay={currentDay}
-                  onSaveEntry={handleSaveJournalEntry}
-                />
-              );
+                onSaveEntry={handleSaveJournalEntry}
+              />
+            );
             }
           case 'leaderboard':
             return <LeaderboardPage users={leaderboardUsers} />;
@@ -569,7 +910,8 @@ const AppLayout: React.FC = () => {
                 onLikeEntry={handleLikeEntry}
                 onAddPrayerRequest={handleAddPrayerRequest}
                 onAddTestimony={handleAddTestimony}
-                currentUserId="current-user"
+                currentUserId={currentUser?.id || 'local-user'}
+                currentUserProfilePicture={userData.profilePicture || ''}
               />
             );
           case 'announce':

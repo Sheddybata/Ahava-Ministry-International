@@ -15,6 +15,7 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
     system: '',
     prayer: ''
   });
+  const [shareToCommunity, setShareToCommunity] = useState(true); // Always share to community
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -36,7 +37,8 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
         date: new Date().toISOString(),
         id: Date.now(),
         title: `Day ${currentDay} Reflection`,
-        content: `INSIGHT: ${formData.insight}\n\nATTENTION: ${formData.attention}\n\nCOMMITMENT: ${formData.commitment}\n\nTASK: ${formData.task}\n\nSYSTEM: ${formData.system}\n\nPRAYER: ${formData.prayer}`
+        content: `INSIGHT: ${formData.insight}\n\nATTENTION: ${formData.attention}\n\nCOMMITMENT: ${formData.commitment}\n\nTASK: ${formData.task}\n\nSYSTEM: ${formData.system}\n\nPRAYER: ${formData.prayer}`,
+        shareToCommunity: shareToCommunity
       };
       onSaveEntry(entry);
       setLastEntry(entry);
@@ -179,12 +181,12 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
               ) : (
                 <>
                   <span className="text-xl">💾</span>
-                  <span>Save Reflection Entry</span>
+                  <span>Save & Share Reflection</span>
                 </>
               )}
             </button>
             <p className="text-center text-gray-500 text-sm mt-3">
-              Your reflection will be saved to your personal journal
+              Your reflection will be saved to your journal and shared with the community
             </p>
           </div>
         </form>
@@ -196,6 +198,7 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
           entry={lastEntry}
+          sharedToCommunity={lastEntry.shareToCommunity}
         />
       )}
     </div>

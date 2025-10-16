@@ -12,6 +12,7 @@ interface CommunityEntry {
   likes: number;
   likedBy: string[]; // Array of user IDs who liked this post
   comments: Comment[];
+  isTemporary?: boolean; // Indicates if this is a temporary fallback post
   // Journal entry fields
   insight?: string;
   attention?: string;
@@ -36,6 +37,7 @@ interface CommunityPageProps {
   onAddPrayerRequest: (prayerRequest: { title: string; content: string; isAnonymous: boolean }) => void;
   onAddTestimony: (testimony: { title: string; content: string; isAnonymous: boolean }) => void;
   currentUserId?: string; // Current user ID to check if they've liked a post
+  currentUserProfilePicture?: string; // Current user's profile picture for comment box
 }
 
 const CommunityPage: React.FC<CommunityPageProps> = ({ 
@@ -44,7 +46,8 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   onLikeEntry, 
   onAddPrayerRequest, 
   onAddTestimony,
-  currentUserId = 'current-user' // Default user ID for demo
+  currentUserId = 'current-user', // Default user ID for demo
+  currentUserProfilePicture
 }) => {
   const [activeTab, setActiveTab] = useState<'insight' | 'prayer' | 'testimony'>('insight');
   const [commentText, setCommentText] = useState<{ [key: string]: string }>({});
@@ -57,7 +60,13 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   const [exportEntry, setExportEntry] = useState<any | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  console.log('🔍 Community page - all entries:', entries);
+  console.log('🔍 Community page - entries length:', entries?.length || 0);
+  console.log('🔍 Community page - active tab:', activeTab);
+  console.log('🔍 Community page - entry types:', entries?.map(e => e.type) || []);
   const filteredEntries = entries.filter(entry => entry.type === activeTab);
+  console.log('🔍 Community page - filtered entries:', filteredEntries);
+  console.log('🔍 Community page - filtered entries length:', filteredEntries?.length || 0);
 
   const tabs = [
     { id: 'insight', label: 'INSIGHT ACTS', icon: '💡' },
@@ -176,7 +185,14 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                   </div>
                 )}
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-800">{entry.username}</h4>
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-medium text-gray-800">{entry.username}</h4>
+                    {entry.isTemporary && (
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                        📱 Local Only
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <span>Day {entry.day}</span>
                     <span>•</span>
@@ -280,7 +296,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                     className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors"
                   >
                     <span>💬</span>
-                    <span className="text-sm">{entry.comments.length}</span>
+                    <span className="text-sm">{entry.comments?.length || 0}</span>
                   </button>
                 </div>
                 
@@ -314,7 +330,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
               {showComments[entry.id] && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   {/* Existing Comments */}
-                  {entry.comments.map((comment) => (
+                  {(entry.comments || []).map((comment) => (
                     <div key={comment.id} className="flex space-x-3 mb-3">
                       {comment.avatar ? (
                         <img 
@@ -337,11 +353,17 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
 
                   {/* Add Comment */}
                   <div className="flex space-x-3">
-                    <img 
-                      src="https://d64gsuwffb70l.cloudfront.net/68d665f993df5d926ecdf2eb_1758881326684_87206609.webp" 
-                      alt="You"
-                      className="w-8 h-8 rounded-full"
-                    />
+                    {currentUserProfilePicture ? (
+                      <img 
+                        src={currentUserProfilePicture} 
+                        alt="You"
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm text-gray-400">👤</span>
+                      </div>
+                    )}
                     <div className="flex-1">
                       <textarea
                         value={commentText[entry.id] || ''}

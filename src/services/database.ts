@@ -86,14 +86,33 @@ export const journalService = {
     system?: string;
     prayer?: string;
   }) {
-    const { data, error } = await supabase
-      .from('journal_entries')
-      .insert(entry)
-      .select()
-      .single();
+    console.log('📝 Creating journal entry with data:', entry);
     
-    if (error) throw error;
-    return data;
+    try {
+      // Add timeout to prevent hanging
+      const insertPromise = supabase
+        .from('journal_entries')
+        .insert(entry)
+        .select()
+        .single();
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Journal entry creation timeout')), 5000)
+      );
+      
+      console.log('🔍 Executing journal entry insert...');
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
+      
+      if (error) {
+        console.error('💥 Error creating journal entry:', error);
+        throw error;
+      }
+      console.log('✅ Journal entry created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('💥 createJournalEntry error:', error);
+      throw error;
+    }
   },
 
   // Update journal entry
@@ -129,27 +148,75 @@ export const journalService = {
   }
 };
 
+// Test Supabase connection
+export const testSupabaseConnection = async () => {
+  try {
+    console.log('🔍 Testing Supabase connection...');
+    const { data, error } = await supabase.from('users').select('count').limit(1);
+    if (error) {
+      console.error('💥 Supabase connection test failed:', error);
+      return false;
+    }
+    console.log('✅ Supabase connection test successful');
+    return true;
+  } catch (error) {
+    console.error('💥 Supabase connection test error:', error);
+    return false;
+  }
+};
+
 // Community posts operations
 export const communityService = {
   // Get all community posts
   async getCommunityPosts(postType?: 'insight' | 'prayer' | 'testimony') {
-    let query = supabase
-      .from('community_posts')
-      .select(`
-        *,
-        users!community_posts_user_id_fkey(is_facilitator),
-        post_likes(id, user_id),
-        post_comments(id, user_id, username, avatar, content, created_at)
-      `)
-      .order('created_at', { ascending: false });
+    console.log('🔍 getCommunityPosts called with postType:', postType);
+    
+    try {
+      // Retry logic for better reliability on Vercel
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          console.log(`🔄 Attempt ${attempts + 1}/${maxAttempts} to fetch community posts`);
+          
+          let query = supabase
+            .from('community_posts')
+            .select(`
+              *,
+              users!community_posts_user_id_fkey(is_facilitator),
+              post_likes(id, user_id),
+              post_comments(id, user_id, username, avatar, content, created_at)
+            `)
+            .order('created_at', { ascending: false });
 
-    if (postType) {
-      query = query.eq('post_type', postType);
+          if (postType) {
+            query = query.eq('post_type', postType);
+          }
+
+          const { data, error } = await query;
+          
+          if (error) {
+            console.error(`💥 Attempt ${attempts + 1} failed:`, error);
+            if (attempts === maxAttempts - 1) throw error;
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            continue;
+          }
+          
+          console.log('✅ Community posts fetched successfully:', data);
+          return data;
+        } catch (error) {
+          console.error(`💥 Attempt ${attempts + 1} error:`, error);
+          if (attempts === maxAttempts - 1) throw error;
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      }
+    } catch (error) {
+      console.error('💥 getCommunityPosts final error:', error);
+      throw error;
     }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data;
   },
 
   // Create community post
@@ -167,63 +234,122 @@ export const communityService = {
     system?: string;
     prayer?: string;
   }) {
-    const { data, error } = await supabase
-      .from('community_posts')
-      .insert(post)
-      .select()
-      .single();
+    console.log('🌐 Creating community post with data:', post);
     
-    if (error) throw error;
-    return data;
+    try {
+      // Retry logic for better reliability on Vercel
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          console.log(`🔄 Attempt ${attempts + 1}/${maxAttempts} to create community post`);
+          
+          const { data, error } = await supabase
+            .from('community_posts')
+            .insert(post)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error(`💥 Attempt ${attempts + 1} failed:`, error);
+            if (attempts === maxAttempts - 1) throw error;
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
+            continue;
+          }
+          
+          console.log('✅ Community post created successfully:', data);
+          return data;
+        } catch (error) {
+          console.error(`💥 Attempt ${attempts + 1} error:`, error);
+          if (attempts === maxAttempts - 1) throw error;
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        }
+      }
+    } catch (error) {
+      console.error('💥 createCommunityPost final error:', error);
+      throw error;
+    }
   },
 
   // Like/unlike post
   async togglePostLike(postId: string, userId: string) {
-    // Check if user already liked
-    const { data: existingLike } = await supabase
-      .from('post_likes')
-      .select('id')
-      .eq('post_id', postId)
-      .eq('user_id', userId)
-      .single();
-
-    if (existingLike) {
-      // Unlike
-      const { error } = await supabase
+    console.log('❤️ togglePostLike called with:', { postId, userId });
+    
+    try {
+      // Check if user already liked
+      console.log('🔍 Checking if user already liked...');
+      const { data: existingLike } = await supabase
         .from('post_likes')
-        .delete()
+        .select('id')
         .eq('post_id', postId)
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-      return { liked: false };
-    } else {
-      // Like
-      const { error } = await supabase
-        .from('post_likes')
-        .insert({ post_id: postId, user_id: userId });
-      
-      if (error) throw error;
-      return { liked: true };
+        .eq('user_id', userId)
+        .single();
+
+      if (existingLike) {
+        // Unlike
+        console.log('💔 User already liked, removing like...');
+        const { error } = await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', userId);
+        
+        if (error) {
+          console.error('💥 Error removing like:', error);
+          throw error;
+        }
+        console.log('✅ Like removed successfully');
+        return { liked: false };
+      } else {
+        // Like
+        console.log('💖 User has not liked, adding like...');
+        const { error } = await supabase
+          .from('post_likes')
+          .insert({ post_id: postId, user_id: userId });
+        
+        if (error) {
+          console.error('💥 Error adding like:', error);
+          throw error;
+        }
+        console.log('✅ Like added successfully');
+        return { liked: true };
+      }
+    } catch (error) {
+      console.error('💥 togglePostLike error:', error);
+      throw error;
     }
   },
 
   // Add comment to post
   async addComment(postId: string, userId: string, username: string, avatar: string, content: string) {
-    const { data, error } = await supabase
-      .from('post_comments')
-      .insert({
-        post_id: postId,
-        user_id: userId,
-        username,
-        avatar,
-        content
-      })
-      .select()
-      .single();
+    console.log('💬 addComment called with:', { postId, userId, username, avatar, content });
     
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase
+        .from('post_comments')
+        .insert({
+          post_id: postId,
+          user_id: userId,
+          username,
+          avatar,
+          content
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('💥 Error adding comment:', error);
+        throw error;
+      }
+      console.log('✅ Comment added successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('💥 addComment error:', error);
+      throw error;
+    }
   }
 };
 
