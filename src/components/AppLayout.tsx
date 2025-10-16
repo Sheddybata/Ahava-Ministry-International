@@ -297,6 +297,9 @@ const AppLayout: React.FC = () => {
       
       // Test Supabase connection first
       addDebugLog('🔍 Testing Supabase connection...');
+      addDebugLog('🔍 Supabase URL: ' + (import.meta.env.VITE_SUPABASE_URL || 'NOT SET'));
+      addDebugLog('🔍 Supabase Key exists: ' + (!!import.meta.env.VITE_SUPABASE_ANON_KEY));
+      
       const connectionOk = await testSupabaseConnection();
       if (!connectionOk) {
         addDebugLog('💥 Supabase connection failed, skipping community data');
@@ -485,6 +488,15 @@ const AppLayout: React.FC = () => {
       console.log('👤 Current user email:', currentUser.email);
       
       // Save to database
+      addDebugLog('📝 Attempting to save journal entry...');
+      addDebugLog('🔍 Testing connection before journal save...');
+      const connectionOk = await testSupabaseConnection();
+      if (!connectionOk) {
+        addDebugLog('💥 Connection test failed before journal save');
+        throw new Error('Database connection failed');
+      }
+      addDebugLog('✅ Connection test passed, proceeding with journal save...');
+      
       const savedEntry = await journalService.createJournalEntry({
         user_id: currentUser.id,
         day: entry.day,
