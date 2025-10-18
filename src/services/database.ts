@@ -87,12 +87,18 @@ export const journalService = {
     prayer?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
-    console.log('🔍 Using direct insert to bypass network issues...');
+    console.log('🔍 Using direct insert with timeout...');
     
     try {
-      console.log('🔍 Attempting direct insert...');
+      console.log('🔍 Attempting direct insert with 3-second timeout...');
       
-      const { data, error } = await supabase
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database insert timeout after 3 seconds')), 3000);
+      });
+      
+      // Create the insert promise
+      const insertPromise = supabase
         .from('journal_entries')
         .insert({
           user_id: entry.user_id,
@@ -108,6 +114,9 @@ export const journalService = {
         })
         .select()
         .single();
+      
+      // Race between insert and timeout
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
       
       if (error) {
         console.error('💥 Error creating journal entry:', error);
@@ -299,12 +308,18 @@ export const communityService = {
     prayer?: string;
   }) {
     console.log('🌐 Creating community post with data:', post);
-    console.log('🔍 Using direct insert to bypass network issues...');
+    console.log('🔍 Using direct insert with timeout...');
     
     try {
-      console.log('🔍 Attempting direct community post insert...');
+      console.log('🔍 Attempting direct community post insert with 3-second timeout...');
       
-      const { data, error } = await supabase
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Community post insert timeout after 3 seconds')), 3000);
+      });
+      
+      // Create the insert promise
+      const insertPromise = supabase
         .from('community_posts')
         .insert({
           user_id: post.user_id,
@@ -322,6 +337,9 @@ export const communityService = {
         })
         .select()
         .single();
+      
+      // Race between insert and timeout
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
       
       if (error) {
         console.error('💥 Error creating community post:', error);

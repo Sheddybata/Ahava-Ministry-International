@@ -39,10 +39,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   // Add connection pooling and timeout settings
   fetch: (url, options = {}) => {
+    console.log('🌐 Supabase fetch request to:', url);
     return fetch(url, {
       ...options,
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(15000), // 15 second timeout
+      // Add aggressive timeout to prevent hanging
+      signal: AbortSignal.timeout(5000), // 5 second timeout
+    }).catch(error => {
+      console.error('💥 Supabase fetch error:', error);
+      throw error;
     });
   },
 });

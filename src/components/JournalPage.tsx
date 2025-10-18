@@ -29,8 +29,7 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
     e.preventDefault();
     setIsSaving(true);
     
-    // Simulate save
-    setTimeout(() => {
+    try {
       const entry = {
         ...formData,
         day: currentDay,
@@ -40,13 +39,20 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
         content: `INSIGHT: ${formData.insight}\n\nATTENTION: ${formData.attention}\n\nCOMMITMENT: ${formData.commitment}\n\nTASK: ${formData.task}\n\nSYSTEM: ${formData.system}\n\nPRAYER: ${formData.prayer}`,
         shareToCommunity: shareToCommunity
       };
-      onSaveEntry(entry);
+      
+      console.log('📝 Calling onSaveEntry with:', entry);
+      await onSaveEntry(entry);
+      
       setLastEntry(entry);
       setIsSaving(false);
       setSaved(true);
       setShowSuccessModal(true);
       setTimeout(() => setSaved(false), 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('💥 Error saving journal entry:', error);
+      setIsSaving(false);
+      // Could add error handling UI here
+    }
   };
 
   const fields = [
