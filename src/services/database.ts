@@ -102,7 +102,14 @@ export const journalService = {
       
       console.log('🔍 Insert promise created, waiting for response...');
       
-      const { data, error } = await insertPromise;
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database insert timeout after 10 seconds')), 10000)
+      );
+      
+      console.log('🔍 Waiting for response with 10-second timeout...');
+      
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
       
       console.log('🔍 Insert completed, checking results...');
       console.log('🔍 Data:', data);
