@@ -501,16 +501,19 @@ const AppLayout: React.FC = () => {
         });
         
         savedEntry = await journalService.createJournalEntry({
-          user_id: currentUser.id,
-          day: entry.day,
-          title: entry.title,
-          content: entry.content,
-          insight: entry.insight,
-          attention: entry.attention,
-          commitment: entry.commitment,
-          task: entry.task,
-          system: entry.system,
-          prayer: entry.prayer
+        user_id: currentUser.id,
+        day: entry.day,
+        title: entry.title,
+        content: entry.content,
+        insight: entry.insight,
+        attention: entry.attention,
+        commitment: entry.commitment,
+        task: entry.task,
+        system: entry.system,
+          prayer: entry.prayer,
+          shareToCommunity: entry.shareToCommunity,
+          username: userData.username,
+          avatar: userData.profilePicture
         });
         
         console.log('✅ Journal entry saved to database:', savedEntry);
@@ -547,6 +550,8 @@ const AppLayout: React.FC = () => {
       setJournalEntries(prev => [savedEntry, ...prev]);
       console.log('📝 Journal entries updated in local state');
       
+      // Community post is now handled by the API endpoint
+      console.log('🔍 Community post creation handled by API endpoint');
       // Create community post if sharing
       console.log('🔍 Checking if should share to community:', entry.shareToCommunity);
       if (entry.shareToCommunity) {

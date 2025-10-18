@@ -85,47 +85,33 @@ export const journalService = {
     task?: string;
     system?: string;
     prayer?: string;
+    shareToCommunity?: boolean;
+    username?: string;
+    avatar?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
-    console.log('🔍 Using direct insert with timeout...');
+    console.log('🔍 Using API endpoint to bypass network issues...');
     
     try {
-      console.log('🔍 Attempting direct insert with 3-second timeout...');
+      console.log('🔍 Calling /api/save-journal endpoint...');
       
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Database insert timeout after 3 seconds')), 3000);
+      const response = await fetch('/api/save-journal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entry }),
       });
       
-      // Create the insert promise
-      const insertPromise = supabase
-        .from('journal_entries')
-        .insert({
-          user_id: entry.user_id,
-          day: entry.day,
-          title: entry.title,
-          content: entry.content,
-          insight: entry.insight || null,
-          attention: entry.attention || null,
-          commitment: entry.commitment || null,
-          task: entry.task || null,
-          system: entry.system || null,
-          prayer: entry.prayer || null
-        })
-        .select()
-        .single();
-      
-      // Race between insert and timeout
-      const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
-      
-      if (error) {
-        console.error('💥 Error creating journal entry:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save journal entry');
       }
       
-      console.log('✅ Journal entry created successfully:', data);
+      const result = await response.json();
+      console.log('✅ Journal entry created successfully via API:', result);
       
-      return data;
+      return result.journalEntry;
     } catch (error) {
       console.error('💥 createJournalEntry error:', error);
       throw error;
@@ -308,47 +294,28 @@ export const communityService = {
     prayer?: string;
   }) {
     console.log('🌐 Creating community post with data:', post);
-    console.log('🔍 Using direct insert with timeout...');
+    console.log('🔍 Using API endpoint to bypass network issues...');
     
     try {
-      console.log('🔍 Attempting direct community post insert with 3-second timeout...');
+      console.log('🔍 Calling /api/save-community-post endpoint...');
       
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Community post insert timeout after 3 seconds')), 3000);
+      const response = await fetch('/api/save-community-post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ post }),
       });
       
-      // Create the insert promise
-      const insertPromise = supabase
-        .from('community_posts')
-        .insert({
-          user_id: post.user_id,
-          username: post.username,
-          avatar: post.avatar || null,
-          day: post.day,
-          content: post.content,
-          post_type: post.post_type,
-          insight: post.insight || null,
-          attention: post.attention || null,
-          commitment: post.commitment || null,
-          task: post.task || null,
-          system: post.system || null,
-          prayer: post.prayer || null
-        })
-        .select()
-        .single();
-      
-      // Race between insert and timeout
-      const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
-      
-      if (error) {
-        console.error('💥 Error creating community post:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save community post');
       }
       
-      console.log('✅ Community post created successfully:', data);
+      const result = await response.json();
+      console.log('✅ Community post created successfully via API:', result);
       
-      return data;
+      return result.communityPost;
     } catch (error) {
       console.error('💥 createCommunityPost error:', error);
       throw error;
