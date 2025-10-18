@@ -1,5 +1,9 @@
-// API endpoint to save journal entries - bypasses client-side network issues
-export default async function handler(req, res) {
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.VITE_SUPABASE_URL as string, process.env.SUPABASE_SERVICE_ROLE_KEY as string);
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -10,18 +14,6 @@ export default async function handler(req, res) {
     if (!entry) {
       return res.status(400).json({ error: 'Entry data is required' });
     }
-
-    // Import Supabase client for server-side
-    const { createClient } = require('@supabase/supabase-js');
-    
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return res.status(500).json({ error: 'Supabase configuration missing' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Insert journal entry
     const { data: journalData, error: journalError } = await supabase
