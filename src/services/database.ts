@@ -188,33 +188,58 @@ export const wakeUpSupabase = async () => {
   }
 };
 
-// Test Supabase connection
+// Test Supabase connection with multiple fallback strategies
 export const testSupabaseConnection = async () => {
   try {
     console.log('🔍 Testing Supabase connection...');
     console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
     console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
     
-    // Simple connection test with timeout
-    const testPromise = supabase.from('users').select('count').limit(1);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection test timeout')), 10000)
-    );
-    
-    const { data, error } = await Promise.race([testPromise, timeoutPromise]);
-    
-    if (error) {
-      console.error('💥 Supabase connection test failed:', error);
-      console.error('💥 Error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      return false;
+    // Strategy 1: Test with simple query
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1)
+        .abortSignal(AbortSignal.timeout(5000));
+      
+      if (!error) {
+        console.log('✅ Supabase connection test successful (strategy 1)');
+        return true;
+      }
+      console.log('⚠️ Strategy 1 failed, trying strategy 2...');
+    } catch (strategy1Error) {
+      console.log('⚠️ Strategy 1 failed, trying strategy 2...');
     }
-    console.log('✅ Supabase connection test successful');
-    return true;
+    
+    // Strategy 2: Test with function call
+    try {
+      const { data, error } = await supabase
+        .rpc('test_connection')
+        .abortSignal(AbortSignal.timeout(5000));
+      
+      if (!error && data) {
+        console.log('✅ Supabase connection test successful (strategy 2)');
+        return true;
+      }
+      console.log('⚠️ Strategy 2 failed, trying strategy 3...');
+    } catch (strategy2Error) {
+      console.log('⚠️ Strategy 2 failed, trying strategy 3...');
+    }
+    
+    // Strategy 3: Test with auth check
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (!error) {
+        console.log('✅ Supabase connection test successful (strategy 3)');
+        return true;
+      }
+    } catch (strategy3Error) {
+      console.log('⚠️ Strategy 3 failed');
+    }
+    
+    console.error('💥 All connection test strategies failed');
+    return false;
   } catch (error) {
     console.error('💥 Supabase connection test error:', error);
     return false;
