@@ -493,6 +493,13 @@ const AppLayout: React.FC = () => {
       
       let savedEntry;
       try {
+        console.log('🔍 Attempting database save with data:', {
+          user_id: currentUser.id,
+          day: entry.day,
+          title: entry.title,
+          content: entry.content
+        });
+        
         savedEntry = await journalService.createJournalEntry({
           user_id: currentUser.id,
           day: entry.day,
@@ -508,9 +515,12 @@ const AppLayout: React.FC = () => {
         
         console.log('✅ Journal entry saved to database:', savedEntry);
         addDebugLog('✅ Journal entry saved to database successfully');
+        addDebugLog(`✅ Entry ID: ${savedEntry.id}`);
       } catch (dbError) {
-        console.error('💥 Database save failed, creating local entry:', dbError);
-        addDebugLog('💥 Database save failed, saving locally only');
+        console.error('💥 Database save failed with detailed error:', dbError);
+        addDebugLog(`💥 Database save failed: ${dbError.message}`);
+        addDebugLog(`💥 Error code: ${dbError.code || 'unknown'}`);
+        addDebugLog(`💥 Error details: ${JSON.stringify(dbError)}`);
         
         // Create a local entry with timestamp
         savedEntry = {
@@ -529,6 +539,8 @@ const AppLayout: React.FC = () => {
           updated_at: new Date().toISOString(),
           is_local_only: true
         };
+        
+        addDebugLog('💥 Created local fallback entry');
       }
       
       // Update local state
