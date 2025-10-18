@@ -97,12 +97,12 @@ export const journalService = {
         p_day: entry.day,
         p_title: entry.title,
         p_content: entry.content,
-        p_insight: entry.insight || null,
-        p_attention: entry.attention || null,
-        p_commitment: entry.commitment || null,
-        p_task: entry.task || null,
-        p_system: entry.system || null,
-        p_prayer: entry.prayer || null
+        p_insight: entry.insight || '',
+        p_attention: entry.attention || '',
+        p_commitment: entry.commitment || '',
+        p_task: entry.task || '',
+        p_system: entry.system || '',
+        p_prayer: entry.prayer || ''
       });
       
       if (error) {
@@ -318,16 +318,16 @@ export const communityService = {
       const { data, error } = await supabase.rpc('insert_community_post', {
         p_user_id: post.user_id,
         p_username: post.username,
-        p_avatar: post.avatar || null,
+        p_avatar: post.avatar || '',
         p_day: post.day,
         p_content: post.content,
         p_post_type: post.post_type,
-        p_insight: post.insight || null,
-        p_attention: post.attention || null,
-        p_commitment: post.commitment || null,
-        p_task: post.task || null,
-        p_system: post.system || null,
-        p_prayer: post.prayer || null
+        p_insight: post.insight || '',
+        p_attention: post.attention || '',
+        p_commitment: post.commitment || '',
+        p_task: post.task || '',
+        p_system: post.system || '',
+        p_prayer: post.prayer || ''
       });
       
       if (error) {
