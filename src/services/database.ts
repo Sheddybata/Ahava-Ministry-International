@@ -330,10 +330,15 @@ export const communityService = {
       if (!post.post_type) {
         throw new Error('post_type is required');
       }
-      if (post.day === null || post.day === undefined) {
-        console.warn('⚠️ Day is null/undefined, setting to 1');
+      
+      // Ensure day is always a valid positive integer
+      if (post.day === null || post.day === undefined || post.day <= 0) {
+        console.warn('⚠️ Day is invalid, setting to 1. Original value:', post.day);
         post.day = 1;
       }
+      
+      // Ensure day is an integer
+      post.day = Math.floor(post.day);
       
       console.log('🔍 Validated post data:', post);
       
