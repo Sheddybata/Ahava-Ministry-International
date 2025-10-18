@@ -87,14 +87,26 @@ export const journalService = {
     prayer?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
+    console.log('🔍 Supabase client:', !!supabase);
+    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
     
     try {
-      console.log('🔍 Executing direct journal entry insert...');
-      const { data, error } = await supabase
+      console.log('🔍 About to execute journal entry insert...');
+      console.log('🔍 Insert data:', JSON.stringify(entry, null, 2));
+      
+      const insertPromise = supabase
         .from('journal_entries')
         .insert(entry)
         .select()
         .single();
+      
+      console.log('🔍 Insert promise created, waiting for response...');
+      
+      const { data, error } = await insertPromise;
+      
+      console.log('🔍 Insert completed, checking results...');
+      console.log('🔍 Data:', data);
+      console.log('🔍 Error:', error);
       
       if (error) {
         console.error('💥 Error creating journal entry:', error);
@@ -111,6 +123,8 @@ export const journalService = {
       return data;
     } catch (error) {
       console.error('💥 createJournalEntry error:', error);
+      console.error('💥 Error type:', typeof error);
+      console.error('💥 Error stack:', error.stack);
       throw error;
     }
   },
