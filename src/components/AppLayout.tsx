@@ -489,28 +489,47 @@ const AppLayout: React.FC = () => {
       
       // Save to database
       addDebugLog('📝 Attempting to save journal entry...');
-      addDebugLog('🔍 Testing connection before journal save...');
-      const connectionOk = await testSupabaseConnection();
-      if (!connectionOk) {
-        addDebugLog('💥 Connection test failed before journal save');
-        throw new Error('Database connection failed');
+      addDebugLog('🔍 Skipping connection test, proceeding directly to journal save...');
+      
+      let savedEntry;
+      try {
+        savedEntry = await journalService.createJournalEntry({
+          user_id: currentUser.id,
+          day: entry.day,
+          title: entry.title,
+          content: entry.content,
+          insight: entry.insight,
+          attention: entry.attention,
+          commitment: entry.commitment,
+          task: entry.task,
+          system: entry.system,
+          prayer: entry.prayer
+        });
+        
+        console.log('✅ Journal entry saved to database:', savedEntry);
+        addDebugLog('✅ Journal entry saved to database successfully');
+      } catch (dbError) {
+        console.error('💥 Database save failed, creating local entry:', dbError);
+        addDebugLog('💥 Database save failed, saving locally only');
+        
+        // Create a local entry with timestamp
+        savedEntry = {
+          id: `local-${Date.now()}`,
+          user_id: currentUser.id,
+          day: entry.day,
+          title: entry.title,
+          content: entry.content,
+          insight: entry.insight,
+          attention: entry.attention,
+          commitment: entry.commitment,
+          task: entry.task,
+          system: entry.system,
+          prayer: entry.prayer,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_local_only: true
+        };
       }
-      addDebugLog('✅ Connection test passed, proceeding with journal save...');
-      
-      const savedEntry = await journalService.createJournalEntry({
-        user_id: currentUser.id,
-        day: entry.day,
-        title: entry.title,
-        content: entry.content,
-        insight: entry.insight,
-        attention: entry.attention,
-        commitment: entry.commitment,
-        task: entry.task,
-        system: entry.system,
-        prayer: entry.prayer
-      });
-      
-      console.log('✅ Journal entry saved:', savedEntry);
       
       // Update local state
       setJournalEntries(prev => [savedEntry, ...prev]);
@@ -556,6 +575,7 @@ const AppLayout: React.FC = () => {
           });
           
           console.log('✅ Community post created successfully:', communityPost);
+          addDebugLog('✅ Community post created and shared successfully');
           
           // Add to local state immediately with type mapping
           const mappedPost = {
@@ -572,6 +592,7 @@ const AppLayout: React.FC = () => {
           console.log('📋 Community entries updated with mapped post');
         } catch (communityError) {
           console.error('💥 Failed to create community post:', communityError);
+          addDebugLog('💥 Community post creation failed, journal entry saved locally only');
           // Don't throw here, let the journal entry still be saved
         }
       } else {
