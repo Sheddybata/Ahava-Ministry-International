@@ -87,6 +87,8 @@ export const journalService = {
     prayer?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
+    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
     
     try {
       // Add timeout to prevent hanging
@@ -97,7 +99,7 @@ export const journalService = {
         .single();
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Journal entry creation timeout')), 30000)
+        setTimeout(() => reject(new Error('Journal entry creation timeout')), 15000)
       );
       
       console.log('🔍 Executing journal entry insert...');
@@ -105,6 +107,12 @@ export const journalService = {
       
       if (error) {
         console.error('💥 Error creating journal entry:', error);
+        console.error('💥 Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
       console.log('✅ Journal entry created successfully:', data);
@@ -187,14 +195,14 @@ export const testSupabaseConnection = async () => {
     console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
     console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
     
-    // First try to wake up Supabase
-    const isAwake = await wakeUpSupabase();
-    if (!isAwake) {
-      console.error('💥 Supabase failed to wake up');
-      return false;
-    }
+    // Simple connection test with timeout
+    const testPromise = supabase.from('users').select('count').limit(1);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection test timeout')), 10000)
+    );
     
-    const { data, error } = await supabase.from('users').select('count').limit(1);
+    const { data, error } = await Promise.race([testPromise, timeoutPromise]);
+    
     if (error) {
       console.error('💥 Supabase connection test failed:', error);
       console.error('💥 Error details:', {
