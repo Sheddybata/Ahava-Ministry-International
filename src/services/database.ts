@@ -73,7 +73,7 @@ export const journalService = {
     return data;
   },
 
-  // Create journal entry with aggressive retry mechanism
+  // Create journal entry - SIMPLE AND DIRECT
   async createJournalEntry(entry: {
     user_id: string;
     day: number;
@@ -87,45 +87,31 @@ export const journalService = {
     prayer?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
-    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-    console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
     
-    // Try multiple strategies with shorter timeouts
-    const strategies = [
-      { name: 'Direct insert', timeout: 5000 },
-      { name: 'Insert with retry', timeout: 3000 },
-      { name: 'Simple insert', timeout: 2000 }
-    ];
-    
-    for (let i = 0; i < strategies.length; i++) {
-      const strategy = strategies[i];
-      console.log(`🔄 Trying strategy ${i + 1}: ${strategy.name}`);
+    try {
+      console.log('🔍 Executing direct journal entry insert...');
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .insert(entry)
+        .select()
+        .single();
       
-      try {
-        const insertPromise = supabase
-          .from('journal_entries')
-          .insert(entry)
-          .select()
-          .single();
-        
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`${strategy.name} timeout`)), strategy.timeout)
-        );
-        
-        const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
-        
-        if (error) {
-          console.error(`💥 Strategy ${i + 1} failed:`, error);
-          if (i === strategies.length - 1) throw error;
-          continue;
-        }
-        
-        console.log(`✅ Journal entry created successfully with ${strategy.name}:`, data);
-        return data;
-      } catch (error) {
-        console.error(`💥 Strategy ${i + 1} error:`, error);
-        if (i === strategies.length - 1) throw error;
+      if (error) {
+        console.error('💥 Error creating journal entry:', error);
+        console.error('💥 Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
       }
+      
+      console.log('✅ Journal entry created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('💥 createJournalEntry error:', error);
+      throw error;
     }
   },
 
