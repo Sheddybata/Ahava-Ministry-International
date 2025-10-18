@@ -37,6 +37,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 10,
     },
   },
+  // Add connection pooling and timeout settings
+  fetch: (url, options = {}) => {
+    return fetch(url, {
+      ...options,
+      // Add timeout to prevent hanging
+      signal: AbortSignal.timeout(15000), // 15 second timeout
+    });
+  },
 });
 
 
