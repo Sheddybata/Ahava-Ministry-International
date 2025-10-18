@@ -73,7 +73,7 @@ export const journalService = {
     return data;
   },
 
-  // Create journal entry - SIMPLE AND DIRECT
+  // Create journal entry using database function
   async createJournalEntry(entry: {
     user_id: string;
     day: number;
@@ -87,51 +87,49 @@ export const journalService = {
     prayer?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
-    console.log('🔍 Supabase client:', !!supabase);
-    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('🔍 Using database function to bypass network issues...');
     
     try {
-      console.log('🔍 About to execute journal entry insert...');
-      console.log('🔍 Insert data:', JSON.stringify(entry, null, 2));
+      console.log('🔍 Calling insert_journal_entry function...');
       
-      const insertPromise = supabase
-        .from('journal_entries')
-        .insert(entry)
-        .select()
-        .single();
-      
-      console.log('🔍 Insert promise created, waiting for response...');
-      
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database insert timeout after 10 seconds')), 10000)
-      );
-      
-      console.log('🔍 Waiting for response with 10-second timeout...');
-      
-      const { data, error } = await Promise.race([insertPromise, timeoutPromise]);
-      
-      console.log('🔍 Insert completed, checking results...');
-      console.log('🔍 Data:', data);
-      console.log('🔍 Error:', error);
+      const { data, error } = await supabase.rpc('insert_journal_entry', {
+        p_user_id: entry.user_id,
+        p_day: entry.day,
+        p_title: entry.title,
+        p_content: entry.content,
+        p_insight: entry.insight || null,
+        p_attention: entry.attention || null,
+        p_commitment: entry.commitment || null,
+        p_task: entry.task || null,
+        p_system: entry.system || null,
+        p_prayer: entry.prayer || null
+      });
       
       if (error) {
         console.error('💥 Error creating journal entry:', error);
-        console.error('💥 Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
         throw error;
       }
       
-      console.log('✅ Journal entry created successfully:', data);
-      return data;
+      console.log('✅ Journal entry created successfully with ID:', data);
+      
+      // Return the created entry
+      return {
+        id: data,
+        user_id: entry.user_id,
+        day: entry.day,
+        title: entry.title,
+        content: entry.content,
+        insight: entry.insight,
+        attention: entry.attention,
+        commitment: entry.commitment,
+        task: entry.task,
+        system: entry.system,
+        prayer: entry.prayer,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     } catch (error) {
       console.error('💥 createJournalEntry error:', error);
-      console.error('💥 Error type:', typeof error);
-      console.error('💥 Error stack:', error.stack);
       throw error;
     }
   },
@@ -296,7 +294,7 @@ export const communityService = {
     }
   },
 
-  // Create community post
+  // Create community post using database function
   async createCommunityPost(post: {
     user_id: string;
     username: string;
@@ -312,101 +310,53 @@ export const communityService = {
     prayer?: string;
   }) {
     console.log('🌐 Creating community post with data:', post);
-    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-    console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
-    console.log('🔍 Current user ID:', post.user_id);
-    console.log('🔍 Post type:', post.post_type);
-    console.log('🔍 Day value:', post.day);
+    console.log('🔍 Using database function to bypass network issues...');
     
     try {
-      // Test connection first
-      console.log('🔍 Testing Supabase connection...');
-      const { data: testData, error: testError } = await supabase
-        .from('community_posts')
-        .select('id')
-        .limit(1);
+      console.log('🔍 Calling insert_community_post function...');
       
-      if (testError) {
-        console.error('💥 Supabase connection test failed:', testError);
-        throw new Error(`Connection test failed: ${testError.message}`);
-      }
-      console.log('✅ Supabase connection test passed');
+      const { data, error } = await supabase.rpc('insert_community_post', {
+        p_user_id: post.user_id,
+        p_username: post.username,
+        p_avatar: post.avatar || null,
+        p_day: post.day,
+        p_content: post.content,
+        p_post_type: post.post_type,
+        p_insight: post.insight || null,
+        p_attention: post.attention || null,
+        p_commitment: post.commitment || null,
+        p_task: post.task || null,
+        p_system: post.system || null,
+        p_prayer: post.prayer || null
+      });
       
-      // Validate required fields
-      if (!post.user_id) {
-        throw new Error('user_id is required');
-      }
-      if (!post.username) {
-        throw new Error('username is required');
-      }
-      if (!post.content) {
-        throw new Error('content is required');
-      }
-      if (!post.post_type) {
-        throw new Error('post_type is required');
+      if (error) {
+        console.error('💥 Error creating community post:', error);
+        throw error;
       }
       
-      // Ensure day is always a valid positive integer
-      if (post.day === null || post.day === undefined || post.day <= 0) {
-        console.warn('⚠️ Day is invalid, setting to 1. Original value:', post.day);
-        post.day = 1;
-      }
+      console.log('✅ Community post created successfully with ID:', data);
       
-      // Ensure day is an integer
-      post.day = Math.floor(post.day);
-      
-      console.log('🔍 Validated post data:', post);
-      
-      // Retry logic for better reliability on Vercel
-      let attempts = 0;
-      const maxAttempts = 3;
-      
-      while (attempts < maxAttempts) {
-        try {
-          console.log(`🔄 Attempt ${attempts + 1}/${maxAttempts} to create community post`);
-          console.log('🔄 Inserting post:', JSON.stringify(post, null, 2));
-          
-          const { data, error } = await supabase
-            .from('community_posts')
-            .insert(post)
-            .select()
-            .single();
-          
-          if (error) {
-            console.error(`💥 Attempt ${attempts + 1} failed:`, error);
-            console.error('💥 Error details:', {
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              code: error.code
-            });
-            
-            // If it's an RLS error, provide more specific guidance
-            if (error.code === '42501') {
-              console.error('💥 RLS Policy Error: Row Level Security is blocking this operation');
-              console.error('💥 Please run the fix_community_rls_final.sql script in Supabase');
-            }
-            
-            if (attempts === maxAttempts - 1) throw error;
-            attempts++;
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
-            continue;
-          }
-          
-          console.log('✅ Community post created successfully:', data);
-          console.log('✅ Post ID:', data.id);
-          console.log('✅ Created at:', data.created_at);
-          return data;
-        } catch (error) {
-          console.error(`💥 Attempt ${attempts + 1} error:`, error);
-          if (attempts === maxAttempts - 1) throw error;
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-        }
-      }
+      // Return the created post
+      return {
+        id: data,
+        user_id: post.user_id,
+        username: post.username,
+        avatar: post.avatar,
+        day: post.day,
+        content: post.content,
+        post_type: post.post_type,
+        insight: post.insight,
+        attention: post.attention,
+        commitment: post.commitment,
+        task: post.task,
+        system: post.system,
+        prayer: post.prayer,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
     } catch (error) {
-      console.error('💥 createCommunityPost final error:', error);
-      console.error('💥 Error stack:', error.stack);
+      console.error('💥 createCommunityPost error:', error);
       throw error;
     }
   },
