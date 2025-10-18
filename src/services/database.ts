@@ -299,6 +299,9 @@ export const communityService = {
     console.log('🌐 Creating community post with data:', post);
     console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
     console.log('🔍 Supabase Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+    console.log('🔍 Current user ID:', post.user_id);
+    console.log('🔍 Post type:', post.post_type);
+    console.log('🔍 Day value:', post.day);
     
     try {
       // Test connection first
@@ -314,6 +317,26 @@ export const communityService = {
       }
       console.log('✅ Supabase connection test passed');
       
+      // Validate required fields
+      if (!post.user_id) {
+        throw new Error('user_id is required');
+      }
+      if (!post.username) {
+        throw new Error('username is required');
+      }
+      if (!post.content) {
+        throw new Error('content is required');
+      }
+      if (!post.post_type) {
+        throw new Error('post_type is required');
+      }
+      if (post.day === null || post.day === undefined) {
+        console.warn('⚠️ Day is null/undefined, setting to 1');
+        post.day = 1;
+      }
+      
+      console.log('🔍 Validated post data:', post);
+      
       // Retry logic for better reliability on Vercel
       let attempts = 0;
       const maxAttempts = 3;
@@ -321,6 +344,7 @@ export const communityService = {
       while (attempts < maxAttempts) {
         try {
           console.log(`🔄 Attempt ${attempts + 1}/${maxAttempts} to create community post`);
+          console.log('🔄 Inserting post:', JSON.stringify(post, null, 2));
           
           const { data, error } = await supabase
             .from('community_posts')
@@ -336,6 +360,13 @@ export const communityService = {
               hint: error.hint,
               code: error.code
             });
+            
+            // If it's an RLS error, provide more specific guidance
+            if (error.code === '42501') {
+              console.error('💥 RLS Policy Error: Row Level Security is blocking this operation');
+              console.error('💥 Please run the fix_community_rls_final.sql script in Supabase');
+            }
+            
             if (attempts === maxAttempts - 1) throw error;
             attempts++;
             await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Exponential backoff
@@ -343,6 +374,8 @@ export const communityService = {
           }
           
           console.log('✅ Community post created successfully:', data);
+          console.log('✅ Post ID:', data.id);
+          console.log('✅ Created at:', data.created_at);
           return data;
         } catch (error) {
           console.error(`💥 Attempt ${attempts + 1} error:`, error);
@@ -353,6 +386,7 @@ export const communityService = {
       }
     } catch (error) {
       console.error('💥 createCommunityPost final error:', error);
+      console.error('💥 Error stack:', error.stack);
       throw error;
     }
   },
