@@ -87,47 +87,36 @@ export const journalService = {
     prayer?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
-    console.log('🔍 Using database function to bypass network issues...');
+    console.log('🔍 Using direct insert to bypass network issues...');
     
     try {
-      console.log('🔍 Calling insert_journal_entry function...');
+      console.log('🔍 Attempting direct insert...');
       
-      const { data, error } = await supabase.rpc('insert_journal_entry', {
-        p_user_id: entry.user_id,
-        p_day: entry.day,
-        p_title: entry.title,
-        p_content: entry.content,
-        p_insight: entry.insight || '',
-        p_attention: entry.attention || '',
-        p_commitment: entry.commitment || '',
-        p_task: entry.task || '',
-        p_system: entry.system || '',
-        p_prayer: entry.prayer || ''
-      });
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: entry.user_id,
+          day: entry.day,
+          title: entry.title,
+          content: entry.content,
+          insight: entry.insight || null,
+          attention: entry.attention || null,
+          commitment: entry.commitment || null,
+          task: entry.task || null,
+          system: entry.system || null,
+          prayer: entry.prayer || null
+        })
+        .select()
+        .single();
       
       if (error) {
         console.error('💥 Error creating journal entry:', error);
         throw error;
       }
       
-      console.log('✅ Journal entry created successfully with ID:', data);
+      console.log('✅ Journal entry created successfully:', data);
       
-      // Return the created entry
-      return {
-        id: data,
-        user_id: entry.user_id,
-        day: entry.day,
-        title: entry.title,
-        content: entry.content,
-        insight: entry.insight,
-        attention: entry.attention,
-        commitment: entry.commitment,
-        task: entry.task,
-        system: entry.system,
-        prayer: entry.prayer,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      return data;
     } catch (error) {
       console.error('💥 createJournalEntry error:', error);
       throw error;
@@ -310,51 +299,38 @@ export const communityService = {
     prayer?: string;
   }) {
     console.log('🌐 Creating community post with data:', post);
-    console.log('🔍 Using database function to bypass network issues...');
+    console.log('🔍 Using direct insert to bypass network issues...');
     
     try {
-      console.log('🔍 Calling insert_community_post function...');
+      console.log('🔍 Attempting direct community post insert...');
       
-      const { data, error } = await supabase.rpc('insert_community_post', {
-        p_user_id: post.user_id,
-        p_username: post.username,
-        p_avatar: post.avatar || '',
-        p_day: post.day,
-        p_content: post.content,
-        p_post_type: post.post_type,
-        p_insight: post.insight || '',
-        p_attention: post.attention || '',
-        p_commitment: post.commitment || '',
-        p_task: post.task || '',
-        p_system: post.system || '',
-        p_prayer: post.prayer || ''
-      });
+      const { data, error } = await supabase
+        .from('community_posts')
+        .insert({
+          user_id: post.user_id,
+          username: post.username,
+          avatar: post.avatar || null,
+          day: post.day,
+          content: post.content,
+          post_type: post.post_type,
+          insight: post.insight || null,
+          attention: post.attention || null,
+          commitment: post.commitment || null,
+          task: post.task || null,
+          system: post.system || null,
+          prayer: post.prayer || null
+        })
+        .select()
+        .single();
       
       if (error) {
         console.error('💥 Error creating community post:', error);
         throw error;
       }
       
-      console.log('✅ Community post created successfully with ID:', data);
+      console.log('✅ Community post created successfully:', data);
       
-      // Return the created post
-      return {
-        id: data,
-        user_id: post.user_id,
-        username: post.username,
-        avatar: post.avatar,
-        day: post.day,
-        content: post.content,
-        post_type: post.post_type,
-        insight: post.insight,
-        attention: post.attention,
-        commitment: post.commitment,
-        task: post.task,
-        system: post.system,
-        prayer: post.prayer,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      return data;
     } catch (error) {
       console.error('💥 createCommunityPost error:', error);
       throw error;
