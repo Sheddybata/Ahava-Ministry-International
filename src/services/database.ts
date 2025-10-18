@@ -90,28 +90,83 @@ export const journalService = {
     avatar?: string;
   }) {
     console.log('📝 Creating journal entry with data:', entry);
-    console.log('🔍 Using API endpoint to bypass network issues...');
+    console.log('🔍 Using direct Supabase insert with retry logic...');
     
     try {
-      console.log('🔍 Calling /api/save-journal endpoint...');
+      console.log('🔍 Attempting direct insert with retry...');
       
-      const response = await fetch('/api/save-journal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ entry }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save journal entry');
+      // Try multiple times with exponential backoff
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`🔍 Attempt ${attempt}/3...`);
+          
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .insert({
+              user_id: entry.user_id,
+              day: entry.day,
+              title: entry.title,
+              content: entry.content,
+              insight: entry.insight || null,
+              attention: entry.attention || null,
+              commitment: entry.commitment || null,
+              task: entry.task || null,
+              system: entry.system || null,
+              prayer: entry.prayer || null
+            })
+            .select()
+            .single();
+          
+          if (error) {
+            throw error;
+          }
+          
+          console.log('✅ Journal entry created successfully:', data);
+          
+          // If sharing to community, also create community post
+          if (entry.shareToCommunity) {
+            console.log('🌐 Creating community post...');
+            const { data: communityData, error: communityError } = await supabase
+              .from('community_posts')
+              .insert({
+                user_id: entry.user_id,
+                username: entry.username || 'Anonymous',
+                avatar: entry.avatar || null,
+                day: entry.day,
+                content: entry.content,
+                post_type: 'insight',
+                insight: entry.insight || null,
+                attention: entry.attention || null,
+                commitment: entry.commitment || null,
+                task: entry.task || null,
+                system: entry.system || null,
+                prayer: entry.prayer || null
+              })
+              .select()
+              .single();
+            
+            if (communityError) {
+              console.error('💥 Community post error (non-fatal):', communityError);
+            } else {
+              console.log('✅ Community post created successfully:', communityData);
+            }
+          }
+          
+          return data;
+        } catch (error) {
+          lastError = error;
+          console.error(`💥 Attempt ${attempt} failed:`, error);
+          
+          if (attempt < 3) {
+            const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+            console.log(`⏳ Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
       
-      const result = await response.json();
-      console.log('✅ Journal entry created successfully via API:', result);
-      
-      return result.journalEntry;
+      throw lastError;
     } catch (error) {
       console.error('💥 createJournalEntry error:', error);
       throw error;
@@ -294,28 +349,55 @@ export const communityService = {
     prayer?: string;
   }) {
     console.log('🌐 Creating community post with data:', post);
-    console.log('🔍 Using API endpoint to bypass network issues...');
+    console.log('🔍 Using direct Supabase insert with retry logic...');
     
     try {
-      console.log('🔍 Calling /api/save-community-post endpoint...');
+      console.log('🔍 Attempting direct community post insert with retry...');
       
-      const response = await fetch('/api/save-community-post', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ post }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save community post');
+      // Try multiple times with exponential backoff
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`🔍 Attempt ${attempt}/3...`);
+          
+          const { data, error } = await supabase
+            .from('community_posts')
+            .insert({
+              user_id: post.user_id,
+              username: post.username,
+              avatar: post.avatar || null,
+              day: post.day,
+              content: post.content,
+              post_type: post.post_type,
+              insight: post.insight || null,
+              attention: post.attention || null,
+              commitment: post.commitment || null,
+              task: post.task || null,
+              system: post.system || null,
+              prayer: post.prayer || null
+            })
+            .select()
+            .single();
+          
+          if (error) {
+            throw error;
+          }
+          
+          console.log('✅ Community post created successfully:', data);
+          return data;
+        } catch (error) {
+          lastError = error;
+          console.error(`💥 Attempt ${attempt} failed:`, error);
+          
+          if (attempt < 3) {
+            const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+            console.log(`⏳ Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
       
-      const result = await response.json();
-      console.log('✅ Community post created successfully via API:', result);
-      
-      return result.communityPost;
+      throw lastError;
     } catch (error) {
       console.error('💥 createCommunityPost error:', error);
       throw error;
