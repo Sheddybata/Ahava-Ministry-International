@@ -1070,22 +1070,26 @@ const AppLayout: React.FC = () => {
       };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
-      <TopHeader 
-        username={userData.username}
-        profilePicture={userData.profilePicture}
-        onProfileClick={() => setShowProfileModal(true)}
-        isDarkMode={isDarkMode}
-        onThemeToggle={() => setIsDarkMode(!isDarkMode)}
-      />
-      
-      {renderActiveTab()}
-      
-      <BottomNavigation 
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        showAnnouncements={false}
-      />
+    <div className={`min-h-screen h-screen overflow-hidden ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+      <div className="flex flex-col h-full">
+        <TopHeader 
+          username={userData.username}
+          profilePicture={userData.profilePicture}
+          onProfileClick={() => setShowProfileModal(true)}
+          isDarkMode={isDarkMode}
+          onThemeToggle={() => setIsDarkMode(!isDarkMode)}
+        />
+        
+        <div className="flex-1 overflow-y-auto">
+          {renderActiveTab()}
+        </div>
+        
+        <BottomNavigation 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          showAnnouncements={false}
+        />
+      </div>
 
       <ProfileModal 
         isOpen={showProfileModal}

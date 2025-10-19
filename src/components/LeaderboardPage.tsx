@@ -33,7 +33,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users }) => {
   };
 
   return (
-    <div className="p-4 pb-20">
+    <div className="p-4 pb-4">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Leaderboard</h1>
         <p className="text-gray-600">Top performers in our faith community</p>

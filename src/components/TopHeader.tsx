@@ -48,7 +48,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
   }, [showProfileMenu]);
 
   return (
-    <div className="relative z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center justify-between safe-area-top safe-area-left safe-area-right">
+    <div className="relative z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center justify-between safe-area-top safe-area-left safe-area-right flex-shrink-0">
       <div className="flex-1 min-w-0 ml-2">
         <h1 className="text-xl sm:text-2xl font-bold text-red-800 truncate">FaithFlow</h1>
         <p className="text-sm sm:text-base text-gray-600 truncate">Welcome back, {username}</p>

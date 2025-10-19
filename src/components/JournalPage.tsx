@@ -95,8 +95,8 @@ const JournalPage: React.FC<JournalPageProps> = ({ currentDay, onSaveEntry }) =>
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-yellow-50">
-      <div className="p-4 pb-20">
+    <div className="min-h-full bg-gradient-to-br from-red-50 via-white to-yellow-50">
+      <div className="p-4 pb-4">
         {/* Header Section */}
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">

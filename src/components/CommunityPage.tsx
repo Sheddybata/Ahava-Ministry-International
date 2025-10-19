@@ -121,7 +121,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   };
 
   return (
-    <div className="pb-20">
+    <div className="pb-4">
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex space-x-1">

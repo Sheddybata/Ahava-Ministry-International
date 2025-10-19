@@ -110,6 +110,39 @@
 
 /* Mobile-first responsive design */
 @media (max-width: 640px) {
+  /* Ensure full height on mobile */
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Better touch targets on mobile */
+  button, input, select, textarea {
+    min-height: 44px;
+  }
+  
+  /* Improve text readability on small screens */
+  body {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Better spacing for small screens */
+  .p-4 {
+    padding: 1rem 0.75rem;
+  }
+  
+  /* Ensure modals fit on small screens */
+  .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  /* Container adjustments for small screens */
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
