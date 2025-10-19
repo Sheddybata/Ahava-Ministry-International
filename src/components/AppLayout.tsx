@@ -315,16 +315,16 @@ const AppLayout: React.FC = () => {
           
           addDebugLog('🔄 Starting community data fetch...');
           const communityData = await Promise.race([communityDataPromise, timeoutPromise]);
-          addDebugLog(`📋 Raw community data received: ${communityData?.length || 0} posts`);
+          addDebugLog(`📋 Raw community data received: ${Array.isArray(communityData) ? communityData.length : 0} posts`);
           
-          if (communityData && communityData.length > 0) {
+          if (Array.isArray(communityData) && communityData.length > 0) {
             addDebugLog(`📋 First post ID: ${communityData[0]?.id}`);
             addDebugLog(`📋 First post type: ${communityData[0]?.post_type}`);
           } else {
             addDebugLog('⚠️ No community data received or empty array');
           }
           
-          const mappedCommunity = (communityData || []).map((row: any) => ({
+          const mappedCommunity = (Array.isArray(communityData) ? communityData : []).map((row: any) => ({
             ...row,
             type: row.post_type, // Map post_type to type for filtering
             is_facilitator: row?.users?.is_facilitator ?? false,
@@ -413,8 +413,30 @@ const AppLayout: React.FC = () => {
     });
   };
 
-  // Listen for auth state changes
+  // Check for existing session on app start and listen for auth state changes
   useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Check if user is already signed in
+        const session = await authService.getSession();
+        if (session?.user) {
+          console.log('🔄 Existing session found, loading user data...');
+          await loadUserData(session.user);
+          setAppState('main');
+        } else {
+          console.log('🔄 No existing session, showing auth screen...');
+          setAppState('auth');
+        }
+      } catch (error) {
+        console.error('💥 Error checking session:', error);
+        setAppState('auth');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeApp();
+
     const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         await loadUserData(session.user);
@@ -438,6 +460,47 @@ const AppLayout: React.FC = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Refresh data when app becomes visible (user returns after being away)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && currentUser && appState === 'main') {
+        console.log('🔄 App became visible, refreshing data...');
+        try {
+          // Refresh user data to get updated reading start date and current day
+          const session = await authService.getSession();
+          if (session?.user) {
+            await loadUserData(session.user);
+          }
+        } catch (error) {
+          console.error('💥 Error refreshing data on visibility change:', error);
+        }
+      }
+    };
+
+    const handleFocus = async () => {
+      if (currentUser && appState === 'main') {
+        console.log('🔄 Window focused, refreshing data...');
+        try {
+          // Refresh user data to get updated reading start date and current day
+          const session = await authService.getSession();
+          if (session?.user) {
+            await loadUserData(session.user);
+          }
+        } catch (error) {
+          console.error('💥 Error refreshing data on focus:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentUser, appState]);
 
   const handleOnboardingComplete = async (data: { username: string; readingPlan: string; profilePicture?: string | null }) => {
     try {
