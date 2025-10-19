@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { authService } from '@/services/database';
 
 interface TopHeaderProps {
@@ -14,6 +14,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
   const [notifCount, setNotifCount] = useState<number>(() => {
     try { return parseInt(localStorage.getItem('ff_notif_count') || '0', 10) || 0; } catch { return 0; }
   });
+  const menuRef = useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -29,6 +30,23 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
     return () => navigator.serviceWorker?.removeEventListener?.('message', onMessage as any);
   }, []);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    }
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
   return (
     <div className="relative z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-4 flex items-center justify-between safe-area-top safe-area-left safe-area-right">
       <div className="flex-1 min-w-0 ml-2">
@@ -36,7 +54,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
         <p className="text-sm sm:text-base text-gray-600 truncate">Welcome back, {username}</p>
       </div>
       
-      <div className="relative mr-2 flex items-center space-x-3">
+      <div className="relative mr-2 flex items-center space-x-3" ref={menuRef}>
         <button
           onClick={() => {
             alert(notifCount > 0 ? `${notifCount} new notification(s)` : 'No new notifications');
@@ -73,29 +91,36 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
         </button>
         
         {showProfileMenu && (
-          <div className="absolute right-0 top-14 bg-white border border-gray-200 rounded-lg shadow-lg py-3 w-52 z-50">
+          <div className="absolute right-0 top-14 bg-white border border-gray-200 rounded-lg shadow-lg py-3 w-52 z-[9999]">
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 onProfileClick();
                 setShowProfileMenu(false);
               }}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 text-base"
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 text-base cursor-pointer"
             >
               <span className="text-lg">⚙️</span>
               <span>Profile Settings</span>
             </button>
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 onThemeToggle();
                 setShowProfileMenu(false);
               }}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 text-base"
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 text-base cursor-pointer"
             >
               <span className="text-lg">{isDarkMode ? '☀️' : '🌙'}</span>
               <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
             <button
-              onClick={async () => {
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🚪 Logout button clicked');
                 try {
                   await authService.signOut();
                   localStorage.removeItem('ff_user_session');
@@ -109,7 +134,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
                   window.location.reload();
                 }
               }}
-              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 text-base text-red-700"
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 text-base text-red-700 cursor-pointer"
             >
               <span className="text-lg">🚪</span>
               <span>Log out</span>
