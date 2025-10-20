@@ -213,7 +213,7 @@ const AppLayout: React.FC = () => {
           const transformedLeaderboard = leaderboardData.map((user: any, index: number) => ({
             id: user.id,
             username: user.username,
-            avatar: user.profile_picture || '/placeholder.svg',
+            avatar: user.profile_picture || null,
             streaks: user.current_streak || 0,
             entries: user.journal_entries || 0,
             position: index + 1
@@ -440,7 +440,7 @@ const AppLayout: React.FC = () => {
         const transformedLeaderboard = leaderboardData.map((user: any, index: number) => ({
           id: user.id,
           username: user.username,
-          avatar: user.profile_picture || '/placeholder.svg',
+          avatar: user.profile_picture || null,
           streaks: user.current_streak || 0,
           entries: user.journal_entries || 0,
           position: index + 1
