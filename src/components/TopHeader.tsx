@@ -123,14 +123,21 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
                 console.log('🚪 Logout button clicked');
                 try {
                   await authService.signOut();
+                  // Clear all localStorage data
                   localStorage.removeItem('ff_user_session');
+                  localStorage.removeItem('ff_user_email');
+                  localStorage.removeItem('ff_user_id');
                   localStorage.removeItem('ff_is_facilitator');
+                  console.log('✅ Logout successful, clearing all session data');
                   window.location.reload();
                 } catch (error) {
                   console.error('Error signing out:', error);
-                  // Fallback to local logout
+                  // Fallback to local logout - clear everything
                   localStorage.removeItem('ff_user_session');
+                  localStorage.removeItem('ff_user_email');
+                  localStorage.removeItem('ff_user_id');
                   localStorage.removeItem('ff_is_facilitator');
+                  console.log('✅ Fallback logout - clearing all session data');
                   window.location.reload();
                 }
               }}

@@ -244,15 +244,20 @@ const AppLayout: React.FC = () => {
           }));
           setLeaderboardUsers(transformedLeaderboard);
         } else {
-          // If no data from database, create some mock data for testing
-          const mockLeaderboard = [
-            { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
-            { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
-            { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
-            { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
-            { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
-          ];
-          setLeaderboardUsers(mockLeaderboard);
+          // Only show mock data if we're in development mode
+          const isDevelopment = import.meta.env.DEV;
+          if (isDevelopment) {
+            const mockLeaderboard = [
+              { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
+              { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
+              { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
+              { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
+              { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
+            ];
+            setLeaderboardUsers(mockLeaderboard);
+          } else {
+            setLeaderboardUsers([]);
+          }
         }
       } catch (error) {
         console.error('Error loading leaderboard data for refresh:', error);
@@ -410,16 +415,22 @@ const AppLayout: React.FC = () => {
           addDebugLog('✅ Leaderboard data loaded successfully');
         } else {
           addDebugLog('⚠️ No leaderboard data received or empty array');
-          // If no data from database, create some mock data for testing
-          const mockLeaderboard = [
-            { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
-            { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
-            { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
-            { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
-            { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
-          ];
-          addDebugLog('🏆 Using mock data for testing');
-          setLeaderboardUsers(mockLeaderboard);
+          // Only show mock data if we're in development mode and no real users exist
+          const isDevelopment = import.meta.env.DEV;
+          if (isDevelopment) {
+            addDebugLog('🏆 Development mode: Using mock data for testing');
+            const mockLeaderboard = [
+              { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
+              { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
+              { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
+              { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
+              { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
+            ];
+            setLeaderboardUsers(mockLeaderboard);
+          } else {
+            addDebugLog('🏆 Production mode: Showing empty leaderboard');
+            setLeaderboardUsers([]);
+          }
         }
       } catch (error) {
         addDebugLog(`💥 Error loading leaderboard data: ${error}`);
@@ -489,15 +500,20 @@ const AppLayout: React.FC = () => {
         addDebugLog('✅ Leaderboard data refreshed successfully');
       } else {
         addDebugLog('⚠️ No leaderboard data received or empty array');
-        // Keep existing mock data fallback
-        const mockLeaderboard = [
-          { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
-          { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
-          { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
-          { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
-          { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
-        ];
-        setLeaderboardUsers(mockLeaderboard);
+        // Only show mock data if we're in development mode
+        const isDevelopment = import.meta.env.DEV;
+        if (isDevelopment) {
+          const mockLeaderboard = [
+            { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
+            { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
+            { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
+            { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
+            { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
+          ];
+          setLeaderboardUsers(mockLeaderboard);
+        } else {
+          setLeaderboardUsers([]);
+        }
       }
     } catch (error) {
       addDebugLog(`💥 Error refreshing leaderboard data: ${error}`);
@@ -574,6 +590,7 @@ const AppLayout: React.FC = () => {
         await loadUserData(session.user);
         setAppState('main');
       } else if (event === 'SIGNED_OUT') {
+        console.log('🚪 User signed out, clearing all app data');
         setCurrentUser(null);
         setUserData({
           username: '',
@@ -585,6 +602,8 @@ const AppLayout: React.FC = () => {
         });
         setJournalEntries([]);
         setCommunityEntries([]);
+        setLeaderboardUsers([]); // Clear leaderboard data too
+        setDebugInfo([]); // Clear debug info
         // Removed facilitator logic(false);
         setAppState('auth');
       }
