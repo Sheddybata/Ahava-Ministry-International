@@ -74,18 +74,16 @@ const AppLayout: React.FC = () => {
         setCurrentUser(user);
       }
       
-      // SIMPLIFIED: Just store basic session info
-      try { 
-        localStorage.setItem('ff_user_session', '1'); 
-        localStorage.setItem('ff_user_email', user?.email || ''); 
-        localStorage.setItem('ff_user_id', user?.id || ''); // Store the real user ID
-        console.log('💾 Session stored in localStorage');
-      } catch (e) {
-        console.error('❌ Failed to store session:', e);
-      }
+      // Session is handled by Supabase automatically - no need for localStorage backup
+      console.log('💾 User authenticated, session managed by Supabase');
       
       // Removed facilitator logic
       
+      // Load user data after authentication
+      if (user) {
+        await loadUserData(user);
+      }
+
       if (isNewUser) {
         // New users go through onboarding
         setAppState('onboarding');
@@ -108,42 +106,20 @@ const AppLayout: React.FC = () => {
         if (session?.user) {
           console.log('✅ Real session found, loading full user data');
           setCurrentUser(session.user);
-          await loadUserData(session.user); // Use full loadUserData, not refresh version
+          await loadUserData(session.user);
           setAppState('main');
           return;
         }
       } catch (sessionError) {
-        console.log('⚠️ Session check failed, checking localStorage backup...');
+        console.log('⚠️ Session check failed:', sessionError);
       }
       
-      // Fallback: Check localStorage as backup
-      const storedSession = localStorage.getItem('ff_user_session');
-      const storedEmail = localStorage.getItem('ff_user_email');
-      
-      if (storedSession === '1' && storedEmail) {
-        console.log('✅ Found stored session for:', storedEmail);
-        const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
-        
-        // Create user object and try to load full data
-        const user = { email: storedEmail, id: storedUserId };
-        setCurrentUser(user);
-        
-        try {
-          // Try to load full user data even with stored session
-          await loadUserData(user);
-          console.log('✅ Successfully loaded user data from stored session');
-        } catch (dataError) {
-          console.log('⚠️ Could not load full user data, using minimal data');
-          setUserData(prev => ({
-            ...prev,
-            username: storedEmail.split('@')[0],
-            readingPlan: '40-days'
-          }));
-        }
-        
-        setAppState('main');
-        return;
-      }
+      // Clear any stale localStorage data if no real session
+      console.log('🧹 Clearing stale localStorage data');
+      localStorage.removeItem('ff_user_session');
+      localStorage.removeItem('ff_user_email');
+      localStorage.removeItem('ff_user_id');
+      localStorage.removeItem('ff_is_facilitator');
       
       // No session found - go to auth
       console.log('❌ No session found, going to auth');
@@ -389,7 +365,7 @@ const AppLayout: React.FC = () => {
             const transformedUser = {
               id: user.id,
               username: user.username,
-              avatar: user.profile_picture || '/placeholder.svg', // Use placeholder if no profile picture
+              avatar: user.profile_picture || null, // Use null if no profile picture
               streaks: user.current_streak || 0,
               entries: user.journal_entries || 0,
               position: index + 1
@@ -548,10 +524,7 @@ const AppLayout: React.FC = () => {
   useEffect(() => {
 
     const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        await loadUserData(session.user);
-        setAppState('main');
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         console.log('🚪 User signed out, clearing all app data');
         setCurrentUser(null);
         setUserData({
@@ -569,6 +542,7 @@ const AppLayout: React.FC = () => {
         // Removed facilitator logic(false);
         setAppState('auth');
       }
+      // Note: SIGNED_IN is handled by handleAuthComplete, not here
     });
 
     return () => subscription.unsubscribe();

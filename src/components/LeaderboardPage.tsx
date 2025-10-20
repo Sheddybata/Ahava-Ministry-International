@@ -3,7 +3,7 @@ import React from 'react';
 interface LeaderboardUser {
   id: string;
   username: string;
-  avatar: string;
+  avatar: string | null;
   streaks: number;
   entries: number;
   position: number;
@@ -79,11 +79,17 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users, onRefresh }) =
             
             return (
               <div key={actualUser.id} className="text-center">
-                <img 
-                  src={actualUser.avatar} 
-                  alt={actualUser.username}
-                  className="w-12 h-12 rounded-full mx-auto mb-2 border-2 border-white"
-                />
+                {actualUser.avatar ? (
+                  <img 
+                    src={actualUser.avatar} 
+                    alt={actualUser.username}
+                    className="w-12 h-12 rounded-full mx-auto mb-2 border-2 border-white"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-white/20 rounded-full mx-auto mb-2 border-2 border-white flex items-center justify-center">
+                    <span className="text-white text-lg">👤</span>
+                  </div>
+                )}
                 <div className={`bg-white/20 rounded-lg p-2 ${heights[index]} flex flex-col justify-center`}>
                   <div className="text-2xl mb-1">{getTrophyIcon(index + 1)}</div>
                   <p className="text-white text-sm font-medium">{actualUser.username}</p>
@@ -108,11 +114,17 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users, onRefresh }) =
                 {user.position <= 3 ? getTrophyIcon(user.position) : user.position}
               </div>
               
-              <img 
-                src={user.avatar} 
-                alt={user.username}
-                className="w-10 h-10 rounded-full"
-              />
+              {user.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt={user.username}
+                  className="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                  <span className="text-gray-500 text-sm">👤</span>
+                </div>
+              )}
               
               <div className="flex-1">
                 <h4 className="font-medium text-gray-800">{user.username}</h4>
