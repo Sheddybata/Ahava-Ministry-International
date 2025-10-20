@@ -43,20 +43,18 @@ export async function initializeNotifications(): Promise<void> {
   const payload: PushSubscriptionPayload = subscription.toJSON() as PushSubscriptionPayload;
 
   try {
-    // TODO: Replace with your backend endpoint
-    await fetch('/api/notifications/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    // Store subscription in localStorage for now
+    localStorage.setItem('push_subscription', JSON.stringify(payload));
+    console.log('Push subscription stored locally');
   } catch (error) {
-    console.error('Failed to register push subscription', error);
+    console.error('Failed to store push subscription', error);
   }
 }
 
 export async function sendTestNotification(): Promise<void> {
   try {
-    await fetch('/api/notifications/test', { method: 'POST' });
+    // Simulate test notification for now
+    console.log('Test notification requested (simulated)');
   } catch (error) {
     console.error('Failed to request test notification', error);
   }
