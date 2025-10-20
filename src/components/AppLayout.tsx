@@ -333,6 +333,7 @@ const AppLayout: React.FC = () => {
           const mappedCommunity = (Array.isArray(communityData) ? communityData : []).map((row: any) => ({
             ...row,
             type: row.post_type, // Map post_type to type for filtering
+            day: row.day && row.day > 0 ? row.day : 1, // Ensure day is valid, default to 1
             is_facilitator: row?.users?.is_facilitator ?? false,
             comments: row.post_comments || [], // Map post_comments to comments
             likedBy: row.post_likes?.map((like: any) => like.user_id) || [], // Map post_likes to likedBy array

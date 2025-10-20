@@ -221,7 +221,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                     )}
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span>Day {entry.day}</span>
+                    <span>Day {entry.day || 1}</span>
                     <span>•</span>
                     <span>{new Date(entry.date).toLocaleDateString()}</span>
                   </div>
@@ -330,7 +330,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                 <button
                   onClick={() => {
                     const constructed = {
-                      title: `${entry.type.toUpperCase()} - Day ${entry.day}`,
+                      title: `${entry.type.toUpperCase()} - Day ${entry.day || 1}`,
                       content: entry.type === 'insight'
                         ? [
                             entry.insight ? `INSIGHT: ${entry.insight}` : undefined,
@@ -342,7 +342,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                           ].filter(Boolean).join('\n\n')
                         : entry.content,
                       date: new Date(entry.date).toLocaleDateString(),
-                      day: entry.day,
+                      day: entry.day || 1,
                     };
                     setExportEntry(constructed);
                     setShowExportModal(true);
