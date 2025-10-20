@@ -19,7 +19,8 @@ import {
   announcementService,
   realtimeService,
   authService,
-  testSupabaseConnection
+  testSupabaseConnection,
+  statsService
 } from '@/services/database';
 
 const AppLayout: React.FC = () => {
@@ -101,31 +102,38 @@ const AppLayout: React.FC = () => {
     try {
       console.log('🔍 Checking for existing session...');
       
-      // Check localStorage first as backup
+      // Always try to get the real session first
+      try {
+        const session = await authService.getSession();
+        if (session?.user) {
+          console.log('✅ Real session found, loading full user data');
+          setCurrentUser(session.user);
+          await loadUserData(session.user); // Use full loadUserData, not refresh version
+          setAppState('main');
+          return;
+        }
+      } catch (sessionError) {
+        console.log('⚠️ Session check failed, checking localStorage backup...');
+      }
+      
+      // Fallback: Check localStorage as backup
       const storedSession = localStorage.getItem('ff_user_session');
       const storedEmail = localStorage.getItem('ff_user_email');
       
       if (storedSession === '1' && storedEmail) {
         console.log('✅ Found stored session for:', storedEmail);
+        const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
         
-        // Try to get real session data, but don't wait too long
+        // Create user object and try to load full data
+        const user = { email: storedEmail, id: storedUserId };
+        setCurrentUser(user);
+        
         try {
-          const sessionPromise = authService.getSession();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Session timeout')), 1000)
-          );
-          
-          const session = await Promise.race([sessionPromise, timeoutPromise]);
-          if (session?.user) {
-            console.log('✅ Real session found, loading user data');
-            setCurrentUser(session.user);
-            await loadUserDataForRefresh(session.user);
-          }
-        } catch (timeoutError) {
-          console.log('⏰ Session check timeout, using stored session');
-          // Create a minimal user object from stored data
-          const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
-          setCurrentUser({ email: storedEmail, id: storedUserId });
+          // Try to load full user data even with stored session
+          await loadUserData(user);
+          console.log('✅ Successfully loaded user data from stored session');
+        } catch (dataError) {
+          console.log('⚠️ Could not load full user data, using minimal data');
           setUserData(prev => ({
             ...prev,
             username: storedEmail.split('@')[0],
@@ -137,8 +145,8 @@ const AppLayout: React.FC = () => {
         return;
       }
       
-      // No stored session - go to auth
-      console.log('❌ No stored session, going to auth');
+      // No session found - go to auth
+      console.log('❌ No session found, going to auth');
       setAppState('auth');
     } catch (error) {
       console.error('💥 Error initializing app:', error);
@@ -220,6 +228,35 @@ const AppLayout: React.FC = () => {
         } catch (e) {
           console.error('Failed to auto-elevate facilitator:', e);
         }
+      }
+
+      // Load leaderboard data for refresh
+      try {
+        const leaderboardData = await statsService.getLeaderboard();
+        if (Array.isArray(leaderboardData) && leaderboardData.length > 0) {
+          const transformedLeaderboard = leaderboardData.map((user: any, index: number) => ({
+            id: user.id,
+            username: user.username,
+            avatar: user.profile_picture || '/placeholder.svg',
+            streaks: user.current_streak || 0,
+            entries: user.journal_entries || 0,
+            position: index + 1
+          }));
+          setLeaderboardUsers(transformedLeaderboard);
+        } else {
+          // If no data from database, create some mock data for testing
+          const mockLeaderboard = [
+            { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
+            { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
+            { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
+            { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
+            { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
+          ];
+          setLeaderboardUsers(mockLeaderboard);
+        }
+      } catch (error) {
+        console.error('Error loading leaderboard data for refresh:', error);
+        setLeaderboardUsers([]);
       }
     } catch (error) {
       console.error('Error loading user data for refresh:', error);
@@ -344,10 +381,126 @@ const AppLayout: React.FC = () => {
         }
       }
 
+      // Load leaderboard data
+      addDebugLog('🏆 Loading leaderboard data...');
+      try {
+        const leaderboardData = await statsService.getLeaderboard();
+        addDebugLog(`🏆 Raw leaderboard data received: ${Array.isArray(leaderboardData) ? leaderboardData.length : 0} users`);
+        
+        if (Array.isArray(leaderboardData) && leaderboardData.length > 0) {
+          addDebugLog(`🏆 First user: ${leaderboardData[0]?.username} (${leaderboardData[0]?.current_streak} streak)`);
+          addDebugLog(`🏆 Raw data sample: ${JSON.stringify(leaderboardData[0], null, 2)}`);
+          
+          // Transform data to match LeaderboardUser interface
+          const transformedLeaderboard = leaderboardData.map((user: any, index: number) => {
+            const transformedUser = {
+              id: user.id,
+              username: user.username,
+              avatar: user.profile_picture || '/placeholder.svg', // Use placeholder if no profile picture
+              streaks: user.current_streak || 0,
+              entries: user.journal_entries || 0,
+              position: index + 1
+            };
+            addDebugLog(`🏆 Transformed user ${index + 1}: ${transformedUser.username} - ${transformedUser.streaks} streaks`);
+            return transformedUser;
+          });
+          
+          addDebugLog(`🏆 Transformed leaderboard data: ${transformedLeaderboard.length} users`);
+          setLeaderboardUsers(transformedLeaderboard);
+          addDebugLog('✅ Leaderboard data loaded successfully');
+        } else {
+          addDebugLog('⚠️ No leaderboard data received or empty array');
+          // If no data from database, create some mock data for testing
+          const mockLeaderboard = [
+            { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
+            { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
+            { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
+            { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
+            { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
+          ];
+          addDebugLog('🏆 Using mock data for testing');
+          setLeaderboardUsers(mockLeaderboard);
+        }
+      } catch (error) {
+        addDebugLog(`💥 Error loading leaderboard data: ${error}`);
+        setLeaderboardUsers([]);
+      }
+
       setupRealtimeSubscriptions();
       
     } catch (error) {
       console.error('Error loading user data:', error);
+    }
+  };
+
+  // Function to force refresh all app data
+  const forceRefreshAllData = async () => {
+    addDebugLog('🔄 Force refreshing all app data...');
+    try {
+      // Try to get fresh session
+      const session = await authService.getSession();
+      if (session?.user) {
+        addDebugLog('✅ Fresh session found, loading full data');
+        setCurrentUser(session.user);
+        await loadUserData(session.user);
+        return true;
+      } else {
+        // Fallback to stored session
+        const storedSession = localStorage.getItem('ff_user_session');
+        const storedEmail = localStorage.getItem('ff_user_email');
+        if (storedSession === '1' && storedEmail) {
+          addDebugLog('🔄 Using stored session for data refresh');
+          const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
+          const user = { email: storedEmail, id: storedUserId };
+          setCurrentUser(user);
+          await loadUserData(user);
+          return true;
+        }
+      }
+      addDebugLog('⚠️ No session available for data refresh');
+      return false;
+    } catch (error) {
+      addDebugLog(`💥 Error force refreshing data: ${error}`);
+      return false;
+    }
+  };
+
+  // Function to refresh leaderboard data
+  const refreshLeaderboardData = async () => {
+    addDebugLog('🏆 Refreshing leaderboard data...');
+    try {
+      const leaderboardData = await statsService.getLeaderboard();
+      addDebugLog(`🏆 Raw leaderboard data received: ${Array.isArray(leaderboardData) ? leaderboardData.length : 0} users`);
+      
+      if (Array.isArray(leaderboardData) && leaderboardData.length > 0) {
+        addDebugLog(`🏆 First user: ${leaderboardData[0]?.username} (${leaderboardData[0]?.current_streak} streak)`);
+        
+        const transformedLeaderboard = leaderboardData.map((user: any, index: number) => ({
+          id: user.id,
+          username: user.username,
+          avatar: user.profile_picture || '/placeholder.svg',
+          streaks: user.current_streak || 0,
+          entries: user.journal_entries || 0,
+          position: index + 1
+        }));
+        
+        addDebugLog(`🏆 Transformed leaderboard data: ${transformedLeaderboard.length} users`);
+        setLeaderboardUsers(transformedLeaderboard);
+        addDebugLog('✅ Leaderboard data refreshed successfully');
+      } else {
+        addDebugLog('⚠️ No leaderboard data received or empty array');
+        // Keep existing mock data fallback
+        const mockLeaderboard = [
+          { id: 'mock-1', username: 'Faithful John', avatar: '/placeholder.svg', streaks: 25, entries: 15, position: 1 },
+          { id: 'mock-2', username: 'Prayerful Mary', avatar: '/placeholder.svg', streaks: 18, entries: 12, position: 2 },
+          { id: 'mock-3', username: 'Devoted David', avatar: '/placeholder.svg', streaks: 12, entries: 8, position: 3 },
+          { id: 'mock-4', username: 'Blessed Sarah', avatar: '/placeholder.svg', streaks: 8, entries: 5, position: 4 },
+          { id: 'mock-5', username: 'Graceful Anna', avatar: '/placeholder.svg', streaks: 5, entries: 3, position: 5 }
+        ];
+        setLeaderboardUsers(mockLeaderboard);
+      }
+    } catch (error) {
+      addDebugLog(`💥 Error refreshing leaderboard data: ${error}`);
     }
   };
 
@@ -413,29 +566,8 @@ const AppLayout: React.FC = () => {
     });
   };
 
-  // Check for existing session on app start and listen for auth state changes
+  // Listen for auth state changes
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Check if user is already signed in
-        const session = await authService.getSession();
-        if (session?.user) {
-          console.log('🔄 Existing session found, loading user data...');
-          await loadUserData(session.user);
-          setAppState('main');
-        } else {
-          console.log('🔄 No existing session, showing auth screen...');
-          setAppState('auth');
-        }
-      } catch (error) {
-        console.error('💥 Error checking session:', error);
-        setAppState('auth');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeApp();
 
     const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
@@ -467,10 +599,23 @@ const AppLayout: React.FC = () => {
       if (!document.hidden && currentUser && appState === 'main') {
         console.log('🔄 App became visible, refreshing data...');
         try {
-          // Refresh user data to get updated reading start date and current day
+          // Always try to get fresh session and load full data
           const session = await authService.getSession();
           if (session?.user) {
+            console.log('🔄 Refreshing full user data on visibility change');
+            setCurrentUser(session.user);
             await loadUserData(session.user);
+          } else {
+            // If no session, try to refresh with stored data
+            const storedSession = localStorage.getItem('ff_user_session');
+            const storedEmail = localStorage.getItem('ff_user_email');
+            if (storedSession === '1' && storedEmail) {
+              console.log('🔄 Refreshing with stored session data');
+              const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
+              const user = { email: storedEmail, id: storedUserId };
+              setCurrentUser(user);
+              await loadUserData(user);
+            }
           }
         } catch (error) {
           console.error('💥 Error refreshing data on visibility change:', error);
@@ -482,10 +627,23 @@ const AppLayout: React.FC = () => {
       if (currentUser && appState === 'main') {
         console.log('🔄 Window focused, refreshing data...');
         try {
-          // Refresh user data to get updated reading start date and current day
+          // Always try to get fresh session and load full data
           const session = await authService.getSession();
           if (session?.user) {
+            console.log('🔄 Refreshing full user data on focus');
+            setCurrentUser(session.user);
             await loadUserData(session.user);
+          } else {
+            // If no session, try to refresh with stored data
+            const storedSession = localStorage.getItem('ff_user_session');
+            const storedEmail = localStorage.getItem('ff_user_email');
+            if (storedSession === '1' && storedEmail) {
+              console.log('🔄 Refreshing with stored session data on focus');
+              const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
+              const user = { email: storedEmail, id: storedUserId };
+              setCurrentUser(user);
+              await loadUserData(user);
+            }
           }
         } catch (error) {
           console.error('💥 Error refreshing data on focus:', error);
@@ -501,6 +659,14 @@ const AppLayout: React.FC = () => {
       window.removeEventListener('focus', handleFocus);
     };
   }, [currentUser, appState]);
+
+  // Refresh leaderboard data when leaderboard tab is accessed
+  useEffect(() => {
+    if (activeTab === 'leaderboard' && appState === 'main') {
+      addDebugLog('🏆 Leaderboard tab accessed, refreshing data...');
+      refreshLeaderboardData();
+    }
+  }, [activeTab, appState]);
 
   const handleOnboardingComplete = async (data: { username: string; readingPlan: string; profilePicture?: string | null }) => {
     try {
@@ -1031,7 +1197,7 @@ const AppLayout: React.FC = () => {
             );
             }
           case 'leaderboard':
-            return <LeaderboardPage users={leaderboardUsers} />;
+            return <LeaderboardPage users={leaderboardUsers} onRefresh={refreshLeaderboardData} />;
           case 'community':
             return (
               <CommunityPage

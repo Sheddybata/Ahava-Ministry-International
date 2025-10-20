@@ -89,6 +89,7 @@ SELECT
   u.id,
   u.username,
   u.email,
+  u.profile_picture,
   u.current_streak,
   u.total_visits,
   COALESCE(je.journal_count, 0) as journal_entries,

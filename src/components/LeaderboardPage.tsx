@@ -11,9 +11,10 @@ interface LeaderboardUser {
 
 interface LeaderboardPageProps {
   users: LeaderboardUser[];
+  onRefresh?: () => void;
 }
 
-const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users }) => {
+const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users, onRefresh }) => {
   const getTrophyIcon = (position: number) => {
     switch (position) {
       case 1: return '🥇';
@@ -32,10 +33,38 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users }) => {
     }
   };
 
+  // Handle empty state
+  if (users.length === 0) {
+    return (
+      <div className="p-4 pb-4">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Leaderboard</h1>
+          <p className="text-gray-600">Top performers in our faith community</p>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="text-6xl mb-4">🏆</div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No Data Yet</h3>
+          <p className="text-gray-600">Start journaling and building streaks to see the leaderboard!</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 pb-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Leaderboard</h1>
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-2xl font-bold text-gray-800">Leaderboard</h1>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              🔄 Refresh
+            </button>
+          )}
+        </div>
         <p className="text-gray-600">Top performers in our faith community</p>
       </div>
 
@@ -43,10 +72,10 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users }) => {
       <div className="bg-gradient-to-r from-red-800 to-yellow-600 rounded-2xl p-6 mb-6">
         <div className="flex justify-center items-end space-x-4">
           {users.slice(0, 3).map((user, index) => {
-            const positions = [1, 0, 2]; // Second, First, Third
-            const actualIndex = positions[index];
-            const actualUser = users[actualIndex];
-            const heights = ['h-20', 'h-24', 'h-18'];
+            // Display users in order: 1st, 2nd, 3rd (left to right)
+            const actualUser = users[index];
+            // Heights: 1st place tallest, 2nd place medium, 3rd place shortest
+            const heights = ['h-28', 'h-22', 'h-18'];
             
             return (
               <div key={actualUser.id} className="text-center">
@@ -56,7 +85,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ users }) => {
                   className="w-12 h-12 rounded-full mx-auto mb-2 border-2 border-white"
                 />
                 <div className={`bg-white/20 rounded-lg p-2 ${heights[index]} flex flex-col justify-center`}>
-                  <div className="text-2xl mb-1">{getTrophyIcon(actualUser.position)}</div>
+                  <div className="text-2xl mb-1">{getTrophyIcon(index + 1)}</div>
                   <p className="text-white text-sm font-medium">{actualUser.username}</p>
                   <p className="text-white/80 text-xs">{actualUser.streaks} days</p>
                 </div>
