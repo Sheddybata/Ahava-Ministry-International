@@ -31,7 +31,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthComplete }) => {
         onAuthComplete(false, user);
       } else {
         const { user } = await authService.signUp(email, password, email.split('@')[0], phone);
-        try { localStorage.setItem('ff_signup_phone', phone); } catch {}
+        try { localStorage.setItem('ff_signup_phone', phone); } catch (e) { console.warn('Failed to save phone:', e); }
         onAuthComplete(true, user);
       }
     } catch (error: any) {

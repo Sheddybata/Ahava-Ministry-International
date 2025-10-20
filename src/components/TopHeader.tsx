@@ -21,7 +21,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
       if (event.data && event.data.type === 'NEW_NOTIFICATION') {
         setNotifCount((prev) => {
           const next = prev + 1;
-          try { localStorage.setItem('ff_notif_count', String(next)); } catch {}
+          try { localStorage.setItem('ff_notif_count', String(next)); } catch (e) { console.warn('Failed to save notification count:', e); }
           return next;
         });
       }
@@ -59,7 +59,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ username, profilePicture, onProfi
           onClick={() => {
             alert(notifCount > 0 ? `${notifCount} new notification(s)` : 'No new notifications');
             setNotifCount(0);
-            try { localStorage.setItem('ff_notif_count', '0'); } catch {}
+            try { localStorage.setItem('ff_notif_count', '0'); } catch (e) { console.warn('Failed to clear notification count:', e); }
           }}
           aria-label="Notifications"
           className="w-11 h-11 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"

@@ -15,7 +15,7 @@ if (fs.existsSync(envPath)) {
   console.log('⚠️  .env.local already exists');
   console.log('📋 Current contents:');
   console.log(fs.readFileSync(envPath, 'utf8'));
-  return;
+  // Return statement removed
 }
 
 // Create .env.local template
