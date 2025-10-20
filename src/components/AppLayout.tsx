@@ -687,7 +687,7 @@ const AppLayout: React.FC = () => {
         
         savedEntry = await journalService.createJournalEntry({
         user_id: currentUser.id,
-        day: entry.day,
+        day: entry.day && entry.day > 0 ? entry.day : 1,
         title: entry.title,
         content: entry.content,
         insight: entry.insight,
@@ -714,7 +714,7 @@ const AppLayout: React.FC = () => {
         savedEntry = {
           id: `local-${Date.now()}`,
           user_id: currentUser.id,
-          day: entry.day,
+          day: entry.day && entry.day > 0 ? entry.day : 1,
           title: entry.title,
           content: entry.content,
           insight: entry.insight,
@@ -761,11 +761,11 @@ const AppLayout: React.FC = () => {
         });
         
         try {
-          const communityPost = await communityService.createCommunityPost({
-            user_id: currentUser.id,
-            username: userData.username,
-            avatar: userData.profilePicture,
-            day: entry.day,
+        const communityPost = await communityService.createCommunityPost({
+          user_id: currentUser.id,
+          username: userData.username,
+          avatar: userData.profilePicture,
+          day: entry.day && entry.day > 0 ? entry.day : 1,
             content: entry.content,
             post_type: 'insight',
             insight: entry.insight,
@@ -783,6 +783,7 @@ const AppLayout: React.FC = () => {
           const mappedPost = {
             ...communityPost,
             type: communityPost.post_type, // Map post_type to type
+            day: communityPost.day && communityPost.day > 0 ? communityPost.day : 1, // Ensure valid day
             is_facilitator: false // Default for new posts
           };
           console.log('📋 Mapped post to add:', mappedPost);
@@ -808,7 +809,7 @@ const AppLayout: React.FC = () => {
     const fallbackJournalEntry = {
       id: `temp-${Date.now()}`,
       user_id: currentUser.id,
-      day: entry.day,
+      day: entry.day && entry.day > 0 ? entry.day : 1,
       title: entry.title,
       content: entry.content,
       insight: entry.insight,
@@ -830,7 +831,7 @@ const AppLayout: React.FC = () => {
         user_id: currentUser.id,
         username: userData.username,
         avatar: userData.profilePicture,
-        day: entry.day,
+        day: entry.day && entry.day > 0 ? entry.day : 1,
         content: entry.content,
         post_type: 'insight',
         type: 'insight',
