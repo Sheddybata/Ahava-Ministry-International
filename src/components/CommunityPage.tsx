@@ -66,13 +66,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   const [exportEntry, setExportEntry] = useState<any | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
-  console.log('🔍 Community page - all entries:', entries);
-  console.log('🔍 Community page - entries length:', entries?.length || 0);
-  console.log('🔍 Community page - active tab:', activeTab);
-  console.log('🔍 Community page - entry types:', entries?.map(e => e.type) || []);
   const filteredEntries = entries.filter(entry => entry.type === activeTab);
-  console.log('🔍 Community page - filtered entries:', filteredEntries);
-  console.log('🔍 Community page - filtered entries length:', filteredEntries?.length || 0);
 
   const tabs = [
     { id: 'insight', label: 'INSIGHT ACTS', icon: '💡' },

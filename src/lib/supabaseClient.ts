@@ -6,17 +6,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 // Validate environment variables
 if (!supabaseUrl) {
-  console.error('❌ VITE_SUPABASE_URL is not set');
   throw new Error('VITE_SUPABASE_URL environment variable is required');
 }
 
 if (!supabaseAnonKey) {
-  console.error('❌ VITE_SUPABASE_ANON_KEY is not set');
   throw new Error('VITE_SUPABASE_ANON_KEY environment variable is required');
 }
-
-console.log('🔍 Supabase URL:', supabaseUrl);
-console.log('🔍 Supabase Key exists:', !!supabaseAnonKey);
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -39,14 +34,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   // Add connection pooling and timeout settings
   fetch: (url, options = {}) => {
-    console.log('🌐 Supabase fetch request to:', url);
     return fetch(url, {
       ...options,
       // Add aggressive timeout to prevent hanging
       signal: AbortSignal.timeout(5000), // 5 second timeout
-    }).catch(error => {
-      console.error('💥 Supabase fetch error:', error);
-      throw error;
     });
   },
 });
