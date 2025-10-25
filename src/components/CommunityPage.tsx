@@ -38,9 +38,6 @@ interface CommunityPageProps {
   onAddTestimony: (testimony: { title: string; content: string; isAnonymous: boolean }) => void;
   currentUserId?: string; // Current user ID to check if they've liked a post
   currentUserProfilePicture?: string; // Current user's profile picture for comment box
-  debugInfo?: string[]; // Debug information for mobile debugging
-  showDebug?: boolean; // Whether to show debug panel
-  onToggleDebug?: () => void; // Function to toggle debug panel
 }
 
 const CommunityPage: React.FC<CommunityPageProps> = ({ 
@@ -50,10 +47,7 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
   onAddPrayerRequest, 
   onAddTestimony,
   currentUserId = 'current-user', // Default user ID for demo
-  currentUserProfilePicture,
-  debugInfo = [],
-  showDebug = false,
-  onToggleDebug
+  currentUserProfilePicture
 }) => {
   const [activeTab, setActiveTab] = useState<'insight' | 'prayer' | 'testimony'>('insight');
   const [commentText, setCommentText] = useState<{ [key: string]: string }>({});
@@ -134,27 +128,6 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Debug Panel - Always visible on mobile */}
-      <div className="bg-gray-100 border-b border-gray-200 px-4 py-2">
-        <button
-          onClick={onToggleDebug || (() => {})}
-          className="text-xs text-gray-600 hover:text-gray-800"
-        >
-          {showDebug ? '🔽 Hide Debug' : '🔼 Show Debug'} ({debugInfo.length} logs)
-        </button>
-        {showDebug && (
-          <div className="mt-2 bg-black text-green-400 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
-            {debugInfo.length === 0 ? (
-              <div>No debug logs yet... Try refreshing the page or creating a journal entry.</div>
-            ) : (
-              debugInfo.map((log, index) => (
-                <div key={index} className="mb-1">{log}</div>
-              ))
-            )}
-          </div>
-        )}
       </div>
 
       {/* Submission Buttons */}
