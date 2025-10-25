@@ -222,8 +222,12 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <span>Day {entry.day || 1}</span>
-                    <span>•</span>
-                    <span>{new Date(entry.date).toLocaleDateString()}</span>
+                    {entry.date && !isNaN(new Date(entry.date).getTime()) && (
+                      <>
+                        <span>•</span>
+                        <span>{new Date(entry.date).toLocaleDateString()}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -341,7 +345,9 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                             entry.prayer ? `PRAYER: ${entry.prayer}` : undefined,
                           ].filter(Boolean).join('\n\n')
                         : entry.content,
-                      date: new Date(entry.date).toLocaleDateString(),
+                      date: entry.date && !isNaN(new Date(entry.date).getTime()) 
+                        ? new Date(entry.date).toLocaleDateString() 
+                        : new Date().toLocaleDateString(),
                       day: entry.day || 1,
                     };
                     setExportEntry(constructed);
@@ -373,7 +379,9 @@ const CommunityPage: React.FC<CommunityPageProps> = ({
                       <div className="flex-1 bg-gray-50 rounded-lg p-3">
                         <h5 className="font-medium text-sm text-gray-800">{comment.username}</h5>
                         <p className="text-sm text-gray-700">{comment.content}</p>
-                        <p className="text-xs text-gray-500 mt-1">{new Date(comment.date).toLocaleDateString()}</p>
+                        {comment.date && !isNaN(new Date(comment.date).getTime()) && (
+                          <p className="text-xs text-gray-500 mt-1">{new Date(comment.date).toLocaleDateString()}</p>
+                        )}
                       </div>
                     </div>
                   ))}

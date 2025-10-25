@@ -298,7 +298,10 @@ const JournalSuccessModal: React.FC<JournalSuccessModalProps> = ({ isOpen, onClo
             {/* Entry Title and Date - Below Logo */}
             <div className="text-center mb-4 pb-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-800">{entry.title}</h3>
-              <p className="text-sm text-gray-500">Day {entry.day} • {new Date(entry.date).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-500">
+                Day {entry.day || 1}
+                {entry.date && !isNaN(new Date(entry.date).getTime()) && ` • ${new Date(entry.date).toLocaleDateString()}`}
+              </p>
             </div>
 
             {/* Entry Content */}
