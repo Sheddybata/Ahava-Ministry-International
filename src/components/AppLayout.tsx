@@ -43,15 +43,6 @@ const AppLayout: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [leaderboardUsers, setLeaderboardUsers] = useState<any[]>([]);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
-
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}`;
-    console.log(logMessage);
-    setDebugInfo(prev => [...prev.slice(-9), logMessage]); // Keep last 10 messages
-  };
 
   useEffect(() => {
     // Increment total visits when entering main
@@ -234,7 +225,6 @@ const AppLayout: React.FC = () => {
 
   const loadUserData = async (user: any) => {
     console.log('🔄 loadUserData called with user:', user);
-    addDebugLog('🔄 Starting user data load...');
     try {
       setCurrentUser(user);
       let profile: any | null = null;
@@ -302,16 +292,11 @@ const AppLayout: React.FC = () => {
       setJournalEntries(journalData);
       
       // Test Supabase connection first
-      addDebugLog('🔍 Testing Supabase connection...');
-      addDebugLog('🔍 Supabase URL: ' + (import.meta.env.VITE_SUPABASE_URL || 'NOT SET'));
-      addDebugLog('🔍 Supabase Key exists: ' + (!!import.meta.env.VITE_SUPABASE_ANON_KEY));
       
       const connectionOk = await testSupabaseConnection();
       if (!connectionOk) {
-        addDebugLog('💥 Supabase connection failed, skipping community data');
         setCommunityEntries([]);
       } else {
-        addDebugLog('✅ Supabase connection test passed, loading community data...');
         try {
           // Add timeout to prevent hanging
           const communityDataPromise = communityService.getCommunityPosts();
@@ -319,15 +304,10 @@ const AppLayout: React.FC = () => {
             setTimeout(() => reject(new Error('Community data loading timeout')), 30000)
           );
           
-          addDebugLog('🔄 Starting community data fetch...');
           const communityData = await Promise.race([communityDataPromise, timeoutPromise]);
-          addDebugLog(`📋 Raw community data received: ${Array.isArray(communityData) ? communityData.length : 0} posts`);
           
           if (Array.isArray(communityData) && communityData.length > 0) {
-            addDebugLog(`📋 First post ID: ${communityData[0]?.id}`);
-            addDebugLog(`📋 First post type: ${communityData[0]?.post_type}`);
           } else {
-            addDebugLog('⚠️ No community data received or empty array');
           }
           
           const mappedCommunity = (Array.isArray(communityData) ? communityData : []).map((row: any) => ({
@@ -339,27 +319,19 @@ const AppLayout: React.FC = () => {
             likedBy: row.post_likes?.map((like: any) => like.user_id) || [], // Map post_likes to likedBy array
             likes: row.post_likes?.length || 0, // Count of likes
           }));
-          addDebugLog(`📋 Mapped community data: ${mappedCommunity?.length || 0} posts`);
           if (mappedCommunity && mappedCommunity.length > 0) {
-            addDebugLog(`📋 First mapped post ID: ${mappedCommunity[0]?.id}`);
           }
           setCommunityEntries(mappedCommunity);
-          addDebugLog('✅ Community entries set in state');
         } catch (error) {
-          addDebugLog(`💥 Error loading community data: ${error}`);
           setCommunityEntries([]);
         }
       }
 
       // Load leaderboard data
-      addDebugLog('🏆 Loading leaderboard data...');
       try {
         const leaderboardData = await statsService.getLeaderboard();
-        addDebugLog(`🏆 Raw leaderboard data received: ${Array.isArray(leaderboardData) ? leaderboardData.length : 0} users`);
         
         if (Array.isArray(leaderboardData) && leaderboardData.length > 0) {
-          addDebugLog(`🏆 First user: ${leaderboardData[0]?.username} (${leaderboardData[0]?.current_streak} streak)`);
-          addDebugLog(`🏆 Raw data sample: ${JSON.stringify(leaderboardData[0], null, 2)}`);
           
           // Transform data to match LeaderboardUser interface
           const transformedLeaderboard = leaderboardData.map((user: any, index: number) => {
@@ -371,21 +343,14 @@ const AppLayout: React.FC = () => {
               entries: user.journal_entries || 0,
               position: index + 1
             };
-            addDebugLog(`🏆 Transformed user ${index + 1}: ${transformedUser.username} - ${transformedUser.streaks} streaks`);
             return transformedUser;
           });
           
-          addDebugLog(`🏆 Transformed leaderboard data: ${transformedLeaderboard.length} users`);
           setLeaderboardUsers(transformedLeaderboard);
-          addDebugLog('✅ Leaderboard data loaded successfully');
         } else {
-          addDebugLog('⚠️ No leaderboard data received or empty array');
-          addDebugLog(`🏆 Environment check - DEV: ${import.meta.env.DEV}, MODE: ${import.meta.env.MODE}`);
-          addDebugLog('🏆 Production mode: Showing empty leaderboard (no mock data)');
           setLeaderboardUsers([]);
         }
       } catch (error) {
-        addDebugLog(`💥 Error loading leaderboard data: ${error}`);
         setLeaderboardUsers([]);
       }
 
@@ -398,12 +363,10 @@ const AppLayout: React.FC = () => {
 
   // Function to force refresh all app data
   const forceRefreshAllData = async () => {
-    addDebugLog('🔄 Force refreshing all app data...');
     try {
       // Try to get fresh session
       const session = await authService.getSession();
       if (session?.user) {
-        addDebugLog('✅ Fresh session found, loading full data');
         setCurrentUser(session.user);
         await loadUserData(session.user);
         return true;
@@ -412,7 +375,6 @@ const AppLayout: React.FC = () => {
         const storedSession = localStorage.getItem('ff_user_session');
         const storedEmail = localStorage.getItem('ff_user_email');
         if (storedSession === '1' && storedEmail) {
-          addDebugLog('🔄 Using stored session for data refresh');
           const storedUserId = localStorage.getItem('ff_user_id') || 'local-user';
           const user = { email: storedEmail, id: storedUserId };
           setCurrentUser(user);
@@ -420,23 +382,18 @@ const AppLayout: React.FC = () => {
           return true;
         }
       }
-      addDebugLog('⚠️ No session available for data refresh');
       return false;
     } catch (error) {
-      addDebugLog(`💥 Error force refreshing data: ${error}`);
       return false;
     }
   };
 
   // Function to refresh leaderboard data
   const refreshLeaderboardData = async () => {
-    addDebugLog('🏆 Refreshing leaderboard data...');
     try {
       const leaderboardData = await statsService.getLeaderboard();
-      addDebugLog(`🏆 Raw leaderboard data received: ${Array.isArray(leaderboardData) ? leaderboardData.length : 0} users`);
       
       if (Array.isArray(leaderboardData) && leaderboardData.length > 0) {
-        addDebugLog(`🏆 First user: ${leaderboardData[0]?.username} (${leaderboardData[0]?.current_streak} streak)`);
         
         const transformedLeaderboard = leaderboardData.map((user: any, index: number) => ({
           id: user.id,
@@ -447,15 +404,11 @@ const AppLayout: React.FC = () => {
           position: index + 1
         }));
         
-        addDebugLog(`🏆 Transformed leaderboard data: ${transformedLeaderboard.length} users`);
         setLeaderboardUsers(transformedLeaderboard);
-        addDebugLog('✅ Leaderboard data refreshed successfully');
       } else {
-        addDebugLog('⚠️ No leaderboard data received or empty array');
         setLeaderboardUsers([]);
       }
     } catch (error) {
-      addDebugLog(`💥 Error refreshing leaderboard data: ${error}`);
     }
   };
 
@@ -539,7 +492,6 @@ const AppLayout: React.FC = () => {
         setJournalEntries([]);
         setCommunityEntries([]);
         setLeaderboardUsers([]); // Clear leaderboard data too
-        setDebugInfo([]); // Clear debug info
         // Removed facilitator logic(false);
         setAppState('auth');
       }
@@ -619,7 +571,6 @@ const AppLayout: React.FC = () => {
   // Refresh leaderboard data when leaderboard tab is accessed
   useEffect(() => {
     if (activeTab === 'leaderboard' && appState === 'main') {
-      addDebugLog('🏆 Leaderboard tab accessed, refreshing data...');
       refreshLeaderboardData();
     }
   }, [activeTab, appState]);
@@ -673,8 +624,6 @@ const AppLayout: React.FC = () => {
       console.log('👤 Current user email:', currentUser.email);
       
       // Save to database
-      addDebugLog('📝 Attempting to save journal entry...');
-      addDebugLog('🔍 Skipping connection test, proceeding directly to journal save...');
       
       let savedEntry;
       try {
@@ -702,13 +651,8 @@ const AppLayout: React.FC = () => {
         });
         
         console.log('✅ Journal entry saved to database:', savedEntry);
-        addDebugLog('✅ Journal entry saved to database successfully');
-        addDebugLog(`✅ Entry ID: ${savedEntry.id}`);
       } catch (dbError) {
         console.error('💥 Database save failed with detailed error:', dbError);
-        addDebugLog(`💥 Database save failed: ${dbError.message}`);
-        addDebugLog(`💥 Error code: ${dbError.code || 'unknown'}`);
-        addDebugLog(`💥 Error details: ${JSON.stringify(dbError)}`);
         
         // Create a local entry with timestamp
         savedEntry = {
@@ -728,7 +672,6 @@ const AppLayout: React.FC = () => {
           is_local_only: true
         };
         
-        addDebugLog('💥 Created local fallback entry');
       }
       
       // Update local state
@@ -777,7 +720,6 @@ const AppLayout: React.FC = () => {
           });
           
           console.log('✅ Community post created successfully:', communityPost);
-          addDebugLog('✅ Community post created and shared successfully');
           
           // Add to local state immediately with type mapping
           const mappedPost = {
@@ -795,7 +737,6 @@ const AppLayout: React.FC = () => {
           console.log('📋 Community entries updated with mapped post');
         } catch (communityError) {
           console.error('💥 Failed to create community post:', communityError);
-          addDebugLog('💥 Community post creation failed, journal entry saved locally only');
           // Don't throw here, let the journal entry still be saved
         }
       } else {
@@ -1165,9 +1106,6 @@ const AppLayout: React.FC = () => {
                 onAddTestimony={handleAddTestimony}
                 currentUserId={currentUser?.id || 'local-user'}
                 currentUserProfilePicture={userData.profilePicture || ''}
-                debugInfo={debugInfo}
-                showDebug={showDebug}
-                onToggleDebug={() => setShowDebug(!showDebug)}
               />
             );
           case 'announce':
